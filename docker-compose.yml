@@ -1,0 +1,67 @@
+services:
+  db_test:
+    image: mariadb
+    hostname: test
+    environment:
+      MYSQL_ROOT_PASSWORD: pf$6#iAEQ#@y7vMnXiTXLLC#wiEHcn
+      MYSQL_DATABASE: test
+      MYSQL_USER: manager_test
+      MYSQL_PASSWORD: RqoKdtp88Z94v7vL#XKVHPxWdb9dw
+    volumes:
+      - ./Base de datos/test.sql:/docker-entrypoint-initdb.d/init.sql
+      - data:/var/lib/mysql
+
+    networks:
+      - red_taller_software
+
+  backend:
+    build:
+      context: .
+      dockerfile: ./Backend/Dockerfile
+    
+   
+    depends_on:
+      - db_test
+    
+    networks:
+      - red_taller_software
+    environment:
+      - DB_HOST=db_test
+      - DB_PORT=3306
+      - DB_USER=manager_test
+      - DB_PASSWORD=RqoKdtp88Z94v7vL#XKVHPxWdb9dw
+      - DB_NAME=test
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: ./dockerfile
+    ports:
+      - 3009
+    networks:
+      - red_taller_software
+    env_file:
+      - ./Frontend/.env
+
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./caddy_data:/data
+      - ./caddy_config:/config
+    depends_on:
+      - frontend
+    networks:
+      - red_taller_software
+volumes:
+  data:
+    external: false
+
+networks:
+  red_taller_software:
+    external: true
