@@ -1,20 +1,14 @@
 import { User } from "../models/User.js"
-import { Paper } from "../models/Paper.js";
 
 
 export async function getUsers_(){
     try {
         const users = await User.findAll({
-          atributes: ["id", "rut", "name", "mail"],
+          atributes: ["id","name", "mail"],
         });
-
-
-
         return users
       } catch (error) {
-        
         throw new Error("Sucedio un error......")
-        
       }
 }
 
@@ -24,22 +18,17 @@ export async function createUser_(user){
         let newUser = await User.create(
             {
             name,
-            rut,
             mail,
             },
             {
-            fields: ["name", "rut", "mail"],
+            fields: ["name", "mail"],
             }
         );
       return newUser
     } catch (error) {
         throw new Error("Sucedio un error......")
     }
-    
-
 }
-
-
 export async function getUser_(id){
     try {
         const user = await User.findOne({
@@ -54,11 +43,10 @@ export async function getUser_(id){
 }
 
 export async function updateUser_(user){
-    const {id, name, rut, mail} = user 
+    const {id, name, mail} = user 
     try {
         const user = await User.findByPk(id);
         user.name = name;
-        user.rut = rut;
         user.mail = mail;
         await user.save();
         return "Usuario Modificado"

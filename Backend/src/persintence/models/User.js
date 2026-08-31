@@ -1,6 +1,5 @@
 import { DataTypes } from "sequelize";
 import { sequelize } from "../database/database.js";
-import { Paper } from "./Paper.js";
 
 export  const User = sequelize.define(
   "users",
@@ -10,23 +9,22 @@ export  const User = sequelize.define(
       primaryKey: true,
       autoIncrement: true,
     },
-    name: {
-      type: DataTypes.STRING,
+    admin : {
+      type: DataTypes.BOOLEAN,
     },
-    rut: {
+    name: {
       type: DataTypes.STRING,
     },
     mail: {
       type: DataTypes.STRING,
     },
+    password: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    }
   },
   {
     timestamps: false,
   }
 );
 
-User.hasMany(Paper, {
-  foreinkey: "userId",
-  sourceKey: "id",
-});
-Paper.belongsTo(User, { foreinkey: "userId", targetId: "id" });
