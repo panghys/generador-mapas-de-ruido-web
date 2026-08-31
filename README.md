@@ -1,3 +1,27 @@
+# Generador de mapas de ruido
+
+.env del backend:
+DB_NAME=gdmdr
+DB_USER=gdmdr_user
+DB_PASSWORD=clavegm
+DB_HOST=localhost
+DB_PORT=3306
+PORT=4009
+ORIGIN=http://localhost:5173
+
+.env del frontend:
+VITE_APP_HOST=localhost
+VITE_APP_PORT=5173
+
+
+
+
+
+
+
+
+
+
 # 🚀 Instrucciones para ejecutar el proyecto con Docker Desktop
 
 ---
