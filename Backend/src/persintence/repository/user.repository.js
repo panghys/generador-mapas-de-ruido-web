@@ -1,10 +1,17 @@
 import { User } from "../models/User.js"
 
 
+
+/*
+User Repository
+Estas son funciones que se usar para manipular datos en la BD
+ */
+
+
 export async function getUsers_(){
     try {
         const users = await User.findAll({
-          atributes: ["id","name", "mail"],
+          attributes: ["id","name", "mail"],
         });
         return users
       } catch (error) {
@@ -13,15 +20,16 @@ export async function getUsers_(){
 }
 
 export async function createUser_(user){
-    const { name, rut, mail } = user;
+    const { name, mail, password } = user;
     try{ 
         let newUser = await User.create(
             {
             name,
             mail,
+            password
             },
             {
-            fields: ["name", "mail"],
+            fields: ["name", "mail","password"],
             }
         );
       return newUser
@@ -57,30 +65,12 @@ export async function updateUser_(user){
 
 export async function deleteUser_(id){
     try {
-        await Paper.destroy({
-        where: {
-            userId: id,
-        },
-        });
         await User.destroy({
             where: {
             id,
         },
         });
         return "Se elimino el usuario correctamente.. "
-    } catch (error) {
-        throw new Error("Sucedio un error......")
-    }
-}
-
-
-export async function getUserPapers_(id){
-    try {
-        const tasks = await Paper.findAll({
-            attributes: ["id", "name", "date", "description", "userId"],
-            where: { userId: id },
-          });
-          return tasks;
     } catch (error) {
         throw new Error("Sucedio un error......")
     }
