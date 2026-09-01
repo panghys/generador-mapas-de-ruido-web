@@ -11,9 +11,21 @@ module.exports = {
 
         dimWhite: "rgba(255, 255, 255, 0.7)",
         dimBlue: "rgba(9, 151, 124, 0.1)",
+
+        paper: "#F5F7F3",
+        ink: "#1C2420",
+        "ink-soft": "#5B6B62",
+        line: "#E1E6DE",
+        accent: "#0B6E4F",
+        "accent-soft": "#E4F1EC",
+        warn: "#B7791F",
+        "warn-soft": "#FBF1DF",
+
       },
       fontFamily: {
         poppins: ["Poppins", "sans-serif"],
+        sans: ["Inter", "sans-serif"],
+        mono: ["JetBrains Mono", "monospace"],
       },
     },
     screens: {
