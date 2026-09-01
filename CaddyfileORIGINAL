@@ -1,0 +1,181 @@
+raec.inf.uach.cl {
+  @api path /api/*
+  handle @api {
+    reverse_proxy raec-backend:4001
+  }
+
+
+  handle {
+    reverse_proxy raec-frontend:3001
+  }
+
+  handle {
+    try_files {path} /index.html
+    file_server
+  }
+}
+
+
+
+solarweb.inf.uach.cl {
+  @api path /api/*
+  handle @api {
+    reverse_proxy backend-solarweb:4002
+  }
+  handle {
+    reverse_proxy frontend-solarweb:80
+  }
+  handle {
+    try_files {path} /index.html
+    file_server
+  }
+}
+
+gespro.inf.uach.cl {
+
+    encode gzip zstd
+
+    # --- API Django ---
+    @api path /api/*
+    handle @api {
+        reverse_proxy gespro-gespro-frontend-1:3003
+    }
+
+    # --- Superset ---
+    @superset path /superset/*
+    handle @superset {
+        uri strip_prefix /superset
+        reverse_proxy gespro-superset-1:4003 {
+            header_up Host {host}
+        }
+    }
+
+    # --- Static assets ---
+    @superset_assets path /static/assets/*
+    handle @superset_assets {
+        reverse_proxy gespro-superset-1:4003
+    }
+
+    # --- Frontend Django ---
+    handle {
+        reverse_proxy gespro-gespro-frontend-1:3003
+    }
+
+    # --- SPA Fallback ---
+    handle_errors
+    handle {
+        try_files {path} /index.html
+        file_server
+    }
+}
+totem.inf.uach.cl {
+  encode gzip zstd
+
+  # --- API ---
+  @api path /api/*
+  handle @api {
+    reverse_proxy totem_backend:4004
+  }
+
+  # --- ADMIN ---
+  @admin path /admin*
+  handle @admin {
+    uri strip_prefix /admin
+    reverse_proxy totem_frontend_admin:6004 {
+      header_up Host {host}
+    }
+  }
+
+  # --- FRONTEND PÚBLICO ---
+  handle {
+    reverse_proxy totem_frontend:3004 {
+      header_up Host {host}
+    }
+  }
+
+  # --- FALLBACK SPA ---
+  handle_errors
+  handle {
+    try_files {path} /index.html
+    file_server
+  }
+
+  log {
+    output file /var/log/caddy/totem_access.log
+  }
+}
+
+valdiv-ia.inf.uach.cl {
+  @api path /api/*
+  handle @api {
+    reverse_proxy valdiv-ia-backend:4005 {
+      header_up Host {host}
+    }
+  }
+
+  handle {
+    reverse_proxy valdiv-ia-frontend:80 {
+      header_up Host {host}
+    }
+  }
+
+  handle {
+    try_files {path} /index.html
+    file_server
+  }
+}
+
+
+fluxo.inf.uach.cl {
+  @api path /api/*
+  handle @api {
+    reverse_proxy backend:4006
+  }
+  handle {
+    reverse_proxy frontend:3006
+  }
+  handle {
+    try_files {path} /index.html
+    file_server
+  }
+}
+
+govet.inf.uach.cl {
+  @api path /api/*
+  handle @api {
+    reverse_proxy backend:4007
+  }
+  handle {
+    reverse_proxy frontend:3007
+  }
+  handle {
+    try_files {path} /index.html
+    file_server
+  }
+}
+puntalink.inf.uach.cl {
+  @api path /api/*
+  handle @api {
+    reverse_proxy puntalink-backend:4008
+  }
+
+  handle {
+    reverse_proxy puntalink-frontend:3008
+  }
+
+  handle {
+    try_files {path} /index.html
+    file_server
+  }
+}
+
+
+info282.inf.uach.cl {
+  handle {
+    reverse_proxy frontend:3009
+  }
+  handle {
+    try_files {path} /index.html
+    file_server
+  }
+}
