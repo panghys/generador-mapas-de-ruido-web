@@ -3,7 +3,7 @@ services:
     container_name: grupo3_db
     image: mariadb
     environment:
-      MYSQL_ROOT_PASSWORD: pf$6#iAEQ#@y7vMnXiTXLLC#wiEHcn
+      MYSQL_ROOT_PASSWORD: pf$$6#iAEQ#@y7vMnXiTXLLC#wiEHcn
       MYSQL_DATABASE: test
       MYSQL_USER: manager_test
       MYSQL_PASSWORD: RqoKdtp88Z94v7vL#XKVHPxWdb9dw
