@@ -1,5 +1,5 @@
 // Frontend/src/components/Proyecto.jsx
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import ListaProyectos from "./proyecto/ListaProyectos";
 import ProyectoModal from "./proyecto/ProyectoModal";
 
@@ -20,17 +20,31 @@ const proyectosIniciales = [
   },
 ];
 
+const filtros = [
+  { valor: "todos", label: "Todos" },
+  { valor: "borrador", label: "Borrador" },
+  { valor: "listo", label: "Listos" },
+];
+
 const Proyecto = () => {
   const [proyectos, setProyectos] = useState(proyectosIniciales);
+  const [filtroActivo, setFiltroActivo] = useState("todos");
   const [modalAbierto, setModalAbierto] = useState(false);
   const [proyectoEditando, setProyectoEditando] = useState(null);
+
+  const proyectosFiltrados = useMemo(
+    () => (filtroActivo === "todos" ? proyectos : proyectos.filter((p) => p.estado === filtroActivo)),
+    [proyectos, filtroActivo]
+  );
+
+  const listos = proyectos.filter((p) => p.estado === "listo").length;
 
   const handleNuevo = () => {
     setProyectoEditando(null);
     setModalAbierto(true);
   };
 
-  const handleEditar = (proyecto) => {
+  const handleAbrir = (proyecto) => {
     setProyectoEditando(proyecto);
     setModalAbierto(true);
   };
@@ -49,24 +63,39 @@ const Proyecto = () => {
     setModalAbierto(false);
   };
 
-  const handleEliminar = (id) => {
-    setProyectos((prev) => prev.filter((p) => p.id !== id));
-  };
-
   return (
-    <div className="min-h-screen bg-paper font-sans px-6 py-12">
-      <div className="max-w-3xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-semibold text-ink">Mis proyectos</h1>
+    <div className="min-h-screen bg-dash-bg font-sans px-6 py-10">
+      <div className="max-w-5xl mx-auto">
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-2xl font-semibold text-dash-text">Mis proyectos</h1>
           <button
             onClick={handleNuevo}
-            className="px-4 py-2 text-sm bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
+            className="px-4 py-2 text-sm bg-dash-accent text-dash-bg font-medium rounded-lg hover:opacity-90 transition-opacity"
           >
             + Nuevo proyecto
           </button>
         </div>
+        <p className="text-dash-text-soft text-sm mb-6">
+          {proyectos.length} proyectos · {listos} listo{listos !== 1 ? "s" : ""}
+        </p>
 
-        <ListaProyectos proyectos={proyectos} onEdit={handleEditar} onDelete={handleEliminar} />
+        <div className="flex gap-1 mb-6">
+          {filtros.map((f) => (
+            <button
+              key={f.valor}
+              onClick={() => setFiltroActivo(f.valor)}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                filtroActivo === f.valor
+                  ? "bg-dash-accent-soft text-dash-accent"
+                  : "text-dash-text-soft hover:text-dash-text"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        <ListaProyectos proyectos={proyectosFiltrados} onOpen={handleAbrir} />
       </div>
 
       {modalAbierto && (
