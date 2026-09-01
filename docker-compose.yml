@@ -24,7 +24,7 @@ services:
       - red_taller_software
     environment:
       - PORT=4003
-      - ORIGIN=http://grupoX.146.83.216.166.nip.io
+      - ORIGIN=http://grupo3.146.83.216.166.nip.io
       - DB_HOST=db
       - DB_PORT=3306
       - DB_USER=manager_test
