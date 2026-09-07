@@ -75,3 +75,25 @@ export async function deleteUser_(id){
         throw new Error("Sucedio un error......")
     }
 }
+
+export async function findOrCreateGoogleUser_({ providerid, mail, name }) {
+  try {
+    let user = await User.findOne({
+      where: { providerid, provider: "google" },
+    });
+
+    if (!user) {
+      user = await User.create({
+        name,
+        mail,
+        provider: "google",
+        providerid,
+        admin: false,
+      });
+    }
+
+    return user;
+  } catch (error) {
+    throw new Error("Sucedio un error......");
+  }
+}

@@ -9,9 +9,8 @@ async function main() {
 
   const port = process.env.PORT || 4009;
 
-  // Escuchar siempre en todas las interfaces (accesible desde fuera del contenedor)
   app.listen(port, '0.0.0.0', () => {
-    console.log(`Server is running on http://0.0.0.0:${port}`);
+    console.log(`el server esta corriendo en: http://0.0.0.0:${port}`);
   });
 }
 

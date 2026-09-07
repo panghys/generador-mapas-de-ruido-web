@@ -20,7 +20,13 @@ export  const User = sequelize.define(
     },
     password: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
+    },
+    provider: {
+      type: DataTypes.STRING
+    },
+    providerid: {
+      type: DataTypes.STRING
     }
   },
   {
