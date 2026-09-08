@@ -55,7 +55,7 @@ const Login = () => {
       <div className="mx-auto grid max-w-5xl overflow-hidden border border-dash-border bg-dash-surface md:grid-cols-[1.05fr_0.95fr]">
         <section className="hidden flex-col justify-between bg-dash-accent p-10 text-dash-bg md:flex">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em]">RuidoLab</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em]">NoiseMap</p>
             <h1 className="mt-20 max-w-sm text-4xl font-semibold leading-tight">Mapas de ruido para decisiones más claras.</h1>
           </div>
           <p className="max-w-sm text-sm leading-6 opacity-75">Organiza tus proyectos, delimita zonas de medición y prepara tus próximos análisis.</p>
