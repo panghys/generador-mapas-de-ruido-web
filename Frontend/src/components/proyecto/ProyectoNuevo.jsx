@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 const ProyectoNuevo = () => {
   const navigate = useNavigate();
   const [nombre, setNombre] = useState("");
+  const [region, setRegion] = useState("");
+  const [comuna, setComuna] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [estado, setEstado] = useState("borrador");
   const [error, setError] = useState("");
@@ -11,8 +13,8 @@ const ProyectoNuevo = () => {
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    if (!nombre.trim()) {
-      setError("Ingresa un nombre para continuar.");
+    if (!nombre.trim() || !region || !comuna) {
+      setError("Completa el nombre, la región y la comuna para continuar.");
       return;
     }
 
@@ -21,6 +23,8 @@ const ProyectoNuevo = () => {
         proyectoCreado: {
           id: Date.now(),
           nombre: nombre.trim(),
+          region,
+          comuna,
           descripcion: descripcion.trim(),
           estado,
           fecha_modificacion: new Date().toISOString(),
@@ -50,6 +54,23 @@ const ProyectoNuevo = () => {
 
         <form onSubmit={handleSubmit} className="border border-dash-border bg-dash-surface p-6 shadow-sm sm:p-8">
           <div className="space-y-6">
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div>
+                <label htmlFor="region" className="mb-2 block text-sm font-medium text-dash-text">Región</label>
+                <select id="region" value={region} onChange={(event) => setRegion(event.target.value)} className="w-full border border-dash-border bg-white px-3 py-2.5 text-sm text-dash-text outline-none focus:border-dash-accent">
+                  <option value="">Selecciona una región</option>
+                  <option>Los Ríos</option>
+                  <option>Los Lagos</option>
+                  <option>La Araucanía</option>
+                  <option>Metropolitana</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="comuna" className="mb-2 block text-sm font-medium text-dash-text">Comuna</label>
+                <input id="comuna" value={comuna} onChange={(event) => setComuna(event.target.value)} placeholder="Ej: Valdivia" className="w-full border border-dash-border bg-white px-3 py-2.5 text-sm text-dash-text outline-none placeholder:text-dash-text-soft focus:border-dash-accent" />
+              </div>
+            </div>
+
             <div>
               <label htmlFor="nombre" className="mb-2 block text-sm font-medium text-dash-text">
                 Nombre del proyecto
