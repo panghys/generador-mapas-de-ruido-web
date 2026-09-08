@@ -11,6 +11,9 @@ const proyectosIniciales = [
     descripcion: "Levantamiento de ruido en el sector universitario",
     estado: "listo",
     fecha_modificacion: "2026-08-20",
+    region: "Los Ríos",
+    comuna: "Valdivia",
+    preview: "north",
   },
   {
     id: 2,
@@ -18,6 +21,9 @@ const proyectosIniciales = [
     descripcion: "Comparación de escenarios de velocidad máxima",
     estado: "borrador",
     fecha_modificacion: "2026-08-27",
+    region: "Los Ríos",
+    comuna: "Valdivia",
+    preview: "river",
   },
 ];
 
@@ -30,7 +36,13 @@ const filtros = [
 const Proyecto = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [proyectos, setProyectos] = useState(proyectosIniciales);
+  const [proyectos, setProyectos] = useState(() => {
+    const guardados = localStorage.getItem("proyectos");
+    if (!guardados) return proyectosIniciales;
+
+    const proyectosGuardados = JSON.parse(guardados);
+    return [...new Map(proyectosGuardados.map((proyecto) => [proyecto.id, proyecto])).values()];
+  });
   const [filtroActivo, setFiltroActivo] = useState("todos");
   const [modalAbierto, setModalAbierto] = useState(false);
   const [proyectoEditando, setProyectoEditando] = useState(null);
@@ -43,19 +55,25 @@ const Proyecto = () => {
   const listos = proyectos.filter((p) => p.estado === "listo").length;
 
   useEffect(() => {
+    localStorage.setItem("proyectos", JSON.stringify(proyectos));
+  }, [proyectos]);
+
+  useEffect(() => {
     const proyectoCreado = location.state?.proyectoCreado;
 
     if (!proyectoCreado) return;
 
-    setProyectos((prev) => [...prev, proyectoCreado]);
+    setProyectos((prev) => {
+      if (prev.some((proyecto) => proyecto.id === proyectoCreado.id)) return prev;
+      return [...prev, proyectoCreado];
+    });
     navigate("/proyectos", { replace: true, state: null });
   }, [location.state, navigate]);
 
   const handleNuevo = () => navigate("/proyectos/nuevo");
 
   const handleAbrir = (proyecto) => {
-    setProyectoEditando(proyecto);
-    setModalAbierto(true);
+    navigate(`/proyectos/${proyecto.id}/mapa`, { state: { proyecto } });
   };
 
   const handleGuardar = (proyecto) => {

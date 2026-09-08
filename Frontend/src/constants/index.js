@@ -13,6 +13,10 @@ export const navLinks = [
       title: "Papers",
       ref: "/papers"
     },
+    {
+      title: "Mapas",
+      ref: "/proyectos"
+    },
   ];
 
 export const socialMedia = [
