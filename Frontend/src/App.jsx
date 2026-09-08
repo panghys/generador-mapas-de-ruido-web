@@ -1,5 +1,5 @@
 import React from "react";
-import { Navbar, Home, User, Paper, Proyecto, Login } from "./components"
+import { Navbar, Home, User, Paper, Proyecto, ProyectoNuevo, Login } from "./components"
 import { BrowserRouter as Router, Routes , Route } from "react-router-dom";
 
 const App = () => {
@@ -17,6 +17,7 @@ const App = () => {
           <Route path="/usuarios" element={<User />} />
           <Route path="/papers" element={<Paper />} />
           <Route path="/proyectos" element={<Proyecto />} />
+          <Route path="/proyectos/nuevo" element={<ProyectoNuevo />} />
           <Route path="/login" element={<Login />} />
         </Routes>
       </Router>

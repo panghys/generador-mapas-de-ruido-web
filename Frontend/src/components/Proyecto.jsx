@@ -1,5 +1,6 @@
 // Frontend/src/components/Proyecto.jsx
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import ListaProyectos from "./proyecto/ListaProyectos";
 import ProyectoModal from "./proyecto/ProyectoModal";
 
@@ -27,6 +28,8 @@ const filtros = [
 ];
 
 const Proyecto = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [proyectos, setProyectos] = useState(proyectosIniciales);
   const [filtroActivo, setFiltroActivo] = useState("todos");
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -39,10 +42,16 @@ const Proyecto = () => {
 
   const listos = proyectos.filter((p) => p.estado === "listo").length;
 
-  const handleNuevo = () => {
-    setProyectoEditando(null);
-    setModalAbierto(true);
-  };
+  useEffect(() => {
+    const proyectoCreado = location.state?.proyectoCreado;
+
+    if (!proyectoCreado) return;
+
+    setProyectos((prev) => [...prev, proyectoCreado]);
+    navigate("/proyectos", { replace: true, state: null });
+  }, [location.state, navigate]);
+
+  const handleNuevo = () => navigate("/proyectos/nuevo");
 
   const handleAbrir = (proyecto) => {
     setProyectoEditando(proyecto);
