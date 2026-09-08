@@ -22,8 +22,7 @@ echo "==> Copiando docker-compose..."
 scp docker-compose.server.yml "$SERVER:$REMOTE_DIR/docker-compose.yml"
 
 echo "==> Pull de imagenes + arranque..."
-ssh "$SERVER" "cd '$REMOTE_DIR' && docker-compose pull && docker-compose up -d"
-
+ssh "$SERVER" "cd '$REMOTE_DIR' && docker-compose pull && (docker ps -aq --filter name=grupo3_backend --filter name=grupo3_frontend | xargs -r docker rm -f) && docker-compose up -d"
 echo "==> Estado:"
 ssh "$SERVER" "cd '$REMOTE_DIR' && docker-compose ps"
 
