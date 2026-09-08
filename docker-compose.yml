@@ -1,14 +1,12 @@
 services:
-  db:
+  grupo3_db:
     container_name: grupo3_db
     image: mariadb
-    environment:
-      MYSQL_ROOT_PASSWORD: pf$$6#iAEQ#@y7vMnXiTXLLC#wiEHcn
-      MYSQL_DATABASE: test
-      MYSQL_USER: manager_test
-      MYSQL_PASSWORD: RqoKdtp88Z94v7vL#XKVHPxWdb9dw
+    restart: unless-stopped
+    env_file:
+      - .env
     volumes:
-      - ./Base de datos/test.sql:/docker-entrypoint-initdb.d/init.sql
+      - "./Base de datos/test.sql:/docker-entrypoint-initdb.d/init.sql"
       - data:/var/lib/mysql
     networks:
       - red_taller_software
@@ -18,28 +16,26 @@ services:
     build:
       context: .
       dockerfile: ./Backend/Dockerfile
+    restart: unless-stopped
     depends_on:
-      - db
+      - grupo3_db
     networks:
       - red_taller_software
-    environment:
-      - PORT=4003
-      - ORIGIN=http://grupo3.146.83.216.166.nip.io
-      - DB_HOST=db
-      - DB_PORT=3306
-      - DB_USER=manager_test
-      - DB_PASSWORD=RqoKdtp88Z94v7vL#XKVHPxWdb9dw
-      - DB_NAME=test
+    env_file:
+      - .env
 
   frontend:
     container_name: grupo3_frontend
     build:
       context: ./Frontend
       dockerfile: ./dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
     networks:
       - red_taller_software
     env_file:
-      - ./Frontend/.env
+      - .env
 
 volumes:
   data:

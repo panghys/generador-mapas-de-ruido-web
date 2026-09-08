@@ -1,0 +1,38 @@
+name: Construir y publicar imagenes
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login a GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Backend -> ghcr.io/panghys/generador-mapas-de-ruido-web-backend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Backend/Dockerfile
+          push: true
+          tags: ghcr.io/panghys/generador-mapas-de-ruido-web-backend:latest
+
+      - name: Frontend -> ghcr.io/panghys/generador-mapas-de-ruido-web-frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./Frontend
+          file: Frontend/dockerfile
+          push: true
+          tags: ghcr.io/panghys/generador-mapas-de-ruido-web-frontend:latest
