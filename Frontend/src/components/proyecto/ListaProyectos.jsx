@@ -1,7 +1,7 @@
 // Frontend/src/components/proyecto/ListaProyectos.jsx
 import ProyectoCard from "./ProyectoCard";
 
-const ListaProyectos = ({ proyectos, onOpen }) => {
+const ListaProyectos = ({ proyectos, onOpen, onDelete }) => {
   if (proyectos.length === 0) {
     return (
       <div className="border border-dash-border rounded-xl py-16 flex flex-col items-center justify-center text-center">
@@ -14,7 +14,7 @@ const ListaProyectos = ({ proyectos, onOpen }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {proyectos.map((proyecto) => (
-        <ProyectoCard key={proyecto.id} proyecto={proyecto} onOpen={onOpen} />
+        <ProyectoCard key={proyecto.id} proyecto={proyecto} onOpen={onOpen} onDelete={onDelete} />
       ))}
     </div>
   );

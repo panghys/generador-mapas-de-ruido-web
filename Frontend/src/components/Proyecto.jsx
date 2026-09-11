@@ -72,6 +72,11 @@ const Proyecto = () => {
 
   const handleNuevo = () => navigate("/proyectos/nuevo");
 
+  const handleEliminar = async (proyectoId) => {
+    // Aquí iria la llamada a la api backend 
+    setProyectos((prev) => prev.filter((p) => p.id !== proyectoId));
+  };
+
   const handleAbrir = (proyecto) => {
     navigate(`/proyectos/${proyecto.id}/mapa`, { state: { proyecto } });
   };
@@ -122,7 +127,7 @@ const Proyecto = () => {
           ))}
         </div>
 
-        <ListaProyectos proyectos={proyectosFiltrados} onOpen={handleAbrir} />
+        <ListaProyectos proyectos={proyectosFiltrados} onOpen={handleAbrir} onDelete={handleEliminar} />
       </div>
 
       {modalAbierto && (
