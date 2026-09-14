@@ -30,7 +30,7 @@ const Login = () => {
 
   const handleSuccess = async (credentialResponse) => {
     try {
-      const res = await fetch("http://localhost:4009/api/auth/google", {
+      const res = await fetch("http://localhost:4003/api/auth/google", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ credential: credentialResponse.credential }),
