@@ -1,31 +1,7 @@
-// Frontend/src/components/Proyecto.jsx
-import { useState, useMemo, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import ListaProyectos from "./proyecto/ListaProyectos";
-import ProyectoModal from "./proyecto/ProyectoModal";
-
-const proyectosIniciales = [
-  {
-    id: 1,
-    nombre: "Diagnóstico Isla Teja",
-    descripcion: "Levantamiento de ruido en el sector universitario",
-    estado: "listo",
-    fecha_modificacion: "2026-08-20",
-    region: "Los Ríos",
-    comuna: "Valdivia",
-    preview: "north",
-  },
-  {
-    id: 2,
-    nombre: "Corredor Ramón Picarte",
-    descripcion: "Comparación de escenarios de velocidad máxima",
-    estado: "borrador",
-    fecha_modificacion: "2026-08-27",
-    region: "Los Ríos",
-    comuna: "Valdivia",
-    preview: "river",
-  },
-];
+import clientAxios from "./config/clienteAxios";
 
 const filtros = [
   { valor: "todos", label: "Todos" },
@@ -35,64 +11,46 @@ const filtros = [
 
 const Proyecto = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [proyectos, setProyectos] = useState(() => {
-    const guardados = localStorage.getItem("proyectos");
-    if (!guardados) return proyectosIniciales;
-
-    const proyectosGuardados = JSON.parse(guardados);
-    return [...new Map(proyectosGuardados.map((proyecto) => [proyecto.id, proyecto])).values()];
-  });
+  const [proyectos, setProyectos] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState("");
   const [filtroActivo, setFiltroActivo] = useState("todos");
-  const [modalAbierto, setModalAbierto] = useState(false);
-  const [proyectoEditando, setProyectoEditando] = useState(null);
 
-  const proyectosFiltrados = useMemo(
-    () => (filtroActivo === "todos" ? proyectos : proyectos.filter((p) => p.estado === filtroActivo)),
-    [proyectos, filtroActivo]
-  );
+  const cargarProyectos = async () => {
+    setCargando(true);
+    setError("");
+    try {
+      const { data } = await clientAxios.get("/proyectos");
+      setProyectos(data.data);
+    } catch (err) {
+      setError("No se pudieron cargar tus proyectos.");
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarProyectos();
+  }, []);
+
+  const proyectosFiltrados =
+    filtroActivo === "todos" ? proyectos : proyectos.filter((p) => p.estado === filtroActivo);
 
   const listos = proyectos.filter((p) => p.estado === "listo").length;
-
-  useEffect(() => {
-    localStorage.setItem("proyectos", JSON.stringify(proyectos));
-  }, [proyectos]);
-
-  useEffect(() => {
-    const proyectoCreado = location.state?.proyectoCreado;
-
-    if (!proyectoCreado) return;
-
-    setProyectos((prev) => {
-      if (prev.some((proyecto) => proyecto.id === proyectoCreado.id)) return prev;
-      return [...prev, proyectoCreado];
-    });
-    navigate("/proyectos", { replace: true, state: null });
-  }, [location.state, navigate]);
 
   const handleNuevo = () => navigate("/proyectos/nuevo");
 
   const handleEliminar = async (proyectoId) => {
-    // Aquí iria la llamada a la api backend 
-    setProyectos((prev) => prev.filter((p) => p.id !== proyectoId));
+    try {
+      await clientAxios.delete(`/proyectos/${proyectoId}`);
+      setProyectos((prev) => prev.filter((p) => p.id !== proyectoId));
+    } catch (err) {
+      setError("No se pudo eliminar el proyecto.");
+    }
   };
 
   const handleAbrir = (proyecto) => {
     navigate(`/proyectos/${proyecto.id}/mapa`, { state: { proyecto } });
-  };
-
-  const handleGuardar = (proyecto) => {
-    if (proyecto.id) {
-      setProyectos((prev) =>
-        prev.map((p) => (p.id === proyecto.id ? { ...proyecto, fecha_modificacion: new Date().toISOString() } : p))
-      );
-    } else {
-      setProyectos((prev) => [
-        ...prev,
-        { ...proyecto, id: Date.now(), fecha_modificacion: new Date().toISOString() },
-      ]);
-    }
-    setModalAbierto(false);
   };
 
   return (
@@ -127,16 +85,14 @@ const Proyecto = () => {
           ))}
         </div>
 
-        <ListaProyectos proyectos={proyectosFiltrados} onOpen={handleAbrir} onDelete={handleEliminar} />
-      </div>
+        {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
 
-      {modalAbierto && (
-        <ProyectoModal
-          proyecto={proyectoEditando}
-          onClose={() => setModalAbierto(false)}
-          onSave={handleGuardar}
-        />
-      )}
+        {cargando ? (
+          <p className="text-dash-text-soft text-sm">Cargando proyectos...</p>
+        ) : (
+          <ListaProyectos proyectos={proyectosFiltrados} onOpen={handleAbrir} onDelete={handleEliminar} />
+        )}
+      </div>
     </div>
   );
 };

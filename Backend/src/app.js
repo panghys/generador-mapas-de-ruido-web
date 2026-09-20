@@ -12,6 +12,7 @@ const app = express();
 
 import userRoutes from "./routes/users.routes.js";
 import authRoutes from "./routes/auth.routes.js";
+import projectRoutes from "./routes/project.routes.js";
 
 app.use(morgan("dev"));
 app.use(express.json());
@@ -34,5 +35,6 @@ app.use(
 
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/proyectos", projectRoutes);
 
 export default app;

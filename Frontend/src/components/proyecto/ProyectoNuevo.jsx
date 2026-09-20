@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import clientAxios from "../config/clienteAxios";
 
 const ProyectoNuevo = () => {
   const navigate = useNavigate();
@@ -9,8 +10,9 @@ const ProyectoNuevo = () => {
   const [descripcion, setDescripcion] = useState("");
   const [estado, setEstado] = useState("borrador");
   const [error, setError] = useState("");
+  const [enviando, setEnviando] = useState(false);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (!nombre.trim() || !region || !comuna) {
@@ -18,19 +20,23 @@ const ProyectoNuevo = () => {
       return;
     }
 
-    navigate("/proyectos", {
-      state: {
-        proyectoCreado: {
-          id: Date.now(),
-          nombre: nombre.trim(),
-          region,
-          comuna,
-          descripcion: descripcion.trim(),
-          estado,
-          fecha_modificacion: new Date().toISOString(),
-        },
-      },
-    });
+    setEnviando(true);
+    setError("");
+
+    try {
+      await clientAxios.post("/proyectos", {
+        nombre: nombre.trim(),
+        region,
+        comuna,
+        descripcion: descripcion.trim(),
+        estado,
+      });
+      navigate("/proyectos");
+    } catch (err) {
+      setError(err.response?.data?.error || "No se pudo crear el proyecto. Intenta nuevamente.");
+    } finally {
+      setEnviando(false);
+    }
   };
 
   return (
@@ -130,9 +136,10 @@ const ProyectoNuevo = () => {
             </button>
             <button
               type="submit"
-              className="bg-dash-accent px-5 py-2.5 text-sm font-medium text-dash-bg transition-opacity hover:opacity-90"
+              disabled={enviando}
+              className="bg-dash-accent px-5 py-2.5 text-sm font-medium text-dash-bg transition-opacity hover:opacity-90 disabled:opacity-60"
             >
-              Crear proyecto
+              {enviando ? "Creando..." : "Crear proyecto"}
             </button>
           </div>
         </form>

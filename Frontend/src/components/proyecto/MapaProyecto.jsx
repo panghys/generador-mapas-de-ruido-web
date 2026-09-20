@@ -3,24 +3,34 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import EstadoBadge from "./EstadoBadge";
+import clientAxios from "../config/clienteAxios";
 
 const MapaProyecto = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
 
-  const proyectos = JSON.parse(localStorage.getItem("proyectos") || "[]");
-  const proyecto =
-    location.state?.proyecto ||
-    proyectos.find((item) => String(item.id) === id);
+  const [proyecto, setProyecto] = useState(location.state?.proyecto || null);
+  const [cargandoProyecto, setCargandoProyecto] = useState(!location.state?.proyecto);
 
   const [delimitando, setDelimitando] = useState(false);
   const [coordenadas, setCoordenadas] = useState("");
   const [errorCoordenadas, setErrorCoordenadas] = useState(false);
+  const [buscando, setBuscando] = useState(false);
 
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const cuadradoRef = useRef(null);
+
+  useEffect(() => {
+    if (proyecto) return;
+
+    clientAxios
+      .get(`/proyectos/${id}`)
+      .then(({ data }) => setProyecto(data.data))
+      .catch(() => setProyecto(null))
+      .finally(() => setCargandoProyecto(false));
+  }, [id, proyecto]);
 
   useEffect(() => {
     if (!mapRef.current || !proyecto) return;
@@ -82,38 +92,66 @@ const MapaProyecto = () => {
     };
   }, [delimitando]);
 
-  const buscarCoordenadas = () => {
-    const valores = coordenadas
-      .split(",")
-      .map((valor) => valor.trim());
+  const parsearComoCoordenadas = (texto) => {
+    const partes = texto.split(",").map((valor) => valor.trim());
+    if (partes.length !== 2) return null;
 
-    if (valores.length !== 2) {
-      setErrorCoordenadas(true);
+    const lat = Number(partes[0]);
+    const lng = Number(partes[1]);
+
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+    if (lat < -90 || lat > 90) return null;
+    if (lng < -180 || lng > 180) return null;
+
+    return { lat, lng };
+  };
+
+  const buscarUbicacion = async () => {
+    const texto = coordenadas.trim();
+    if (!texto) return;
+
+    // Caso 1: el usuario escribió coordenadas "lat, lng"
+    const comoCoordenadas = parsearComoCoordenadas(texto);
+    if (comoCoordenadas) {
+      setErrorCoordenadas(false);
+      mapInstance.current?.flyTo([comoCoordenadas.lat, comoCoordenadas.lng], 13);
       return;
     }
 
-    const lat = Number(valores[0]);
-    const lng = Number(valores[1]);
-
-    if (Number.isNaN(lat) || Number.isNaN(lng)) {
-      setErrorCoordenadas(true);
-      return;
-    }
-
-    if (lat < -90 || lat > 90) {
-      setErrorCoordenadas(true);
-      return;
-    }
-
-    if (lng < -180 || lng > 180) {
-      setErrorCoordenadas(true);
-      return;
-    }
-
+    // Caso 2: el usuario escribió un nombre de ciudad/localidad -> geocodificar
+    setBuscando(true);
     setErrorCoordenadas(false);
 
-    mapInstance.current?.setView([lat, lng], 10);
+    try {
+      const respuesta = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(texto)}`
+      );
+
+      if (!respuesta.ok) throw new Error("Fallo la consulta de geocodificación");
+
+      const resultados = await respuesta.json();
+
+      if (!resultados.length) {
+        setErrorCoordenadas(true);
+        return;
+      }
+
+      const { lat, lon } = resultados[0];
+      mapInstance.current?.flyTo([Number(lat), Number(lon)], 13);
+    } catch (err) {
+      setErrorCoordenadas(true);
+    } finally {
+      setBuscando(false);
+    }
   };
+
+  if (cargandoProyecto) {
+    return (
+      <main className="min-h-screen bg-dash-bg px-6 py-12 text-dash-text">
+        <p>Cargando proyecto...</p>
+      </main>
+    );
+  }
 
   if (!proyecto) {
     return (
@@ -177,24 +215,25 @@ const MapaProyecto = () => {
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                buscarCoordenadas();
+                buscarUbicacion();
               }
             }}
-            placeholder="Latitud, Longitud"
+            placeholder="Ej: Valdivia, Osorno o -39.8142, -73.2459"
             className="flex-1 border border-dash-border bg-[#162326] px-4 py-2.5 text-sm text-white outline-none placeholder:text-dash-text-soft focus:border-dash-accent"
           />
 
           <button
-            onClick={buscarCoordenadas}
-            className="bg-dash-accent px-5 py-2.5 text-sm font-semibold text-dash-bg hover:opacity-90"
+            onClick={buscarUbicacion}
+            disabled={buscando}
+            className="bg-dash-accent px-5 py-2.5 text-sm font-semibold text-dash-bg hover:opacity-90 disabled:opacity-60"
           >
-            Buscar
+            {buscando ? "Buscando..." : "Buscar"}
           </button>
         </div>
 
         {errorCoordenadas && (
           <p className="mb-3 text-sm text-red-400">
-            Coordenadas inválidas
+            No se encontró esa coordenada o ubicación. Intenta con otro nombre o formato "lat, lng".
           </p>
         )}
 
@@ -216,4 +255,3 @@ const MapaProyecto = () => {
 };
 
 export default MapaProyecto;
-

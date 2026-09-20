@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
 
+
 const Login = () => {
   const navigate = useNavigate();
   const [modoRegistro, setModoRegistro] = useState(false);
