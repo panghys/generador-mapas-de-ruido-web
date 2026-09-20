@@ -1,7 +1,12 @@
 import dotenv from "dotenv";
 import path from "path";
+import { fileURLToPath } from "url";
 
-// Asegura la lectura del .env en la raíz antes de inicializar la base de datos
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Carga el .env de la raíz de manera infalible
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
 dotenv.config();
 
@@ -11,7 +16,6 @@ import { sequelize } from "./persintence/database/database.js";
 async function main() {
   await sequelize.sync({ force: false });
 
-  // Cambiado de 4009 a 4003 como puerto por defecto para el Grupo 3
   const port = process.env.PORT || 4003;
 
   app.listen(port, "0.0.0.0", () => {

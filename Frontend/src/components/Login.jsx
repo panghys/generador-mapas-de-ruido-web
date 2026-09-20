@@ -30,7 +30,15 @@ const Login = () => {
 
   const handleSuccess = async (credentialResponse) => {
     try {
-      const res = await fetch("http://localhost:4003/api/auth/google", {
+      // Si estamos en local, enviamos la petición a nuestro backend local (puerto 4003)
+      const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+      const backendUrl = isLocal 
+        ? "http://localhost:4003" 
+        : (import.meta.env.VITE_BACKEND_URL || "http://localhost:4003");
+
+      const baseUrl = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
+
+      const res = await fetch(`${baseUrl}/api/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ credential: credentialResponse.credential }),

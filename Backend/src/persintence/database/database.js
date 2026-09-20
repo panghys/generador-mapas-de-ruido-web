@@ -2,7 +2,13 @@ import Sequelize from "sequelize";
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Busca el .env dos niveles arriba de src/ (en la raíz del proyecto)
+dotenv.config({ path: path.resolve(__dirname, "../../../../.env") });
 dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
 dotenv.config();
 
@@ -18,5 +24,12 @@ export const sequelize = new Sequelize(
     port: Number(process.env.DB_PORT) || 3306,
     dialect: "mariadb",
     logging: false,
+    dialectOptions: {
+      allowPublicKeyRetrieval: true,
+      // Opciones directas para el driver mariadb subyacente
+      connectOptions: {
+        allowPublicKeyRetrieval: true
+      }
+    },
   }
 );
