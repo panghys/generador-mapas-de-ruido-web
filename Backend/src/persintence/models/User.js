@@ -14,9 +14,11 @@ export  const User = sequelize.define(
     },
     name: {
       type: DataTypes.STRING,
+      allowNull: false,
     },
     mail: {
       type: DataTypes.STRING,
+      unique: true,
     },
     password: {
       type: DataTypes.STRING,

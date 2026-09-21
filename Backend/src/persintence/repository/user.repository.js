@@ -24,12 +24,12 @@ export async function createUser_(user){
     try{ 
         let newUser = await User.create(
             {
-            name,
-            mail,
-            password
+                name,
+                mail,
+                password
             },
             {
-            fields: ["name", "mail","password"],
+                fields: ["name", "mail","password"],
             }
         );
       return newUser
@@ -48,6 +48,19 @@ export async function getUser_(id){
       } catch (error) {
         throw new Error("Sucedio un error......")
       }
+}
+
+export async function findUserByMail_(mail){
+  try{
+    const user = await User.findOne({
+      where: {
+        mail
+      },
+    });
+    return user;
+  } catch (error){
+    throw new Error("No se pudo encontrar ese usuario por ese mail")
+  }
 }
 
 export async function updateUser_(user){
