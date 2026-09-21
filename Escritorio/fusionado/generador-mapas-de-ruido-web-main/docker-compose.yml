@@ -1,0 +1,46 @@
+services:
+  grupo3_db:
+    container_name: grupo3_db
+    image: mariadb
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - "./Base de datos/test.sql:/docker-entrypoint-initdb.d/init.sql"
+      - data:/var/lib/mysql
+    networks:
+      - red_taller_software
+
+  backend:
+    container_name: grupo3_backend
+    build:
+      context: .
+      dockerfile: ./Backend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - grupo3_db
+    networks:
+      - red_taller_software
+    env_file:
+      - .env
+
+  frontend:
+    container_name: grupo3_frontend
+    build:
+      context: ./Frontend
+      dockerfile: ./dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - red_taller_software
+    env_file:
+      - .env
+
+volumes:
+  data:
+    external: false
+
+networks:
+  red_taller_software:
+    external: true
