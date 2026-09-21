@@ -7,6 +7,7 @@ import {
   updateProject,
   deleteProject,
 } from "../controllers/project.controller.js";
+import streetRoutes from "./street.routes.js";
 
 const router = Router();
 
@@ -18,5 +19,8 @@ router.post("/", createProject);
 router.get("/:id", getProject);
 router.put("/:id", updateProject);
 router.delete("/:id", deleteProject);
+
+// Rutas de calles, anidadas bajo un proyecto: /api/proyectos/:proyectoId/calles
+router.use("/:proyectoId/calles", streetRoutes);
 
 export default router;

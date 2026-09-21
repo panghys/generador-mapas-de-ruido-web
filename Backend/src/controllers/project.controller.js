@@ -44,9 +44,19 @@ export function getProject(req, res) {
 
 export function updateProject(req, res) {
   const { id } = req.params;
-  const { nombre, descripcion, region, comuna, estado } = req.body;
+  const { nombre, descripcion, region, comuna, estado, zona } = req.body;
 
-  updateProject_(id, req.user.id, { nombre, descripcion, region, comuna, estado }).then(
+  // Actualización parcial: solo se tocan los campos que vinieron en el body.
+  // "zona" acepta null explícito (para borrar la zona delimitada).
+  const cambios = {};
+  if (nombre !== undefined) cambios.nombre = nombre;
+  if (descripcion !== undefined) cambios.descripcion = descripcion;
+  if (region !== undefined) cambios.region = region;
+  if (comuna !== undefined) cambios.comuna = comuna;
+  if (estado !== undefined) cambios.estado = estado;
+  if (zona !== undefined) cambios.zona = zona;
+
+  updateProject_(id, req.user.id, cambios).then(
     (data) => res.status(200).json({ status: true, data }),
     (error) => res.status(400).json({ status: false, error: error.message })
   );

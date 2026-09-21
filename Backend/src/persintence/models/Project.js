@@ -34,6 +34,11 @@ export const Project = sequelize.define(
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
     },
+    zona: {
+      // GeoJSON Polygon: { type: "Polygon", coordinates: [[[lng, lat], ...]] }
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
   },
   {
     timestamps: false,
