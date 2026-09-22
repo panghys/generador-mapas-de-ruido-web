@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
+import GradientWaves from "./ui/GradientWaves";
 
 
 // Misma lógica de URL del backend que usa el login con Google (local -> :4003)
@@ -109,8 +110,33 @@ const Login = () => {
   };
 
   return (
-    <main className="min-h-screen bg-dash-bg px-6 py-12 font-sans text-dash-text">
-      <div className="mx-auto grid max-w-5xl overflow-hidden border border-dash-border bg-dash-surface md:grid-cols-[1.05fr_0.95fr]">
+    <main className="relative min-h-screen overflow-hidden bg-dash-bg px-6 py-12 font-sans text-dash-text">
+      {/* Fondo animado en WebGL — capa a pantalla completa, detrás del recuadro de login */}
+      <div className="absolute inset-0 z-0">
+        <GradientWaves
+          horizonColor="#00dfc3"
+          waveColor="#000000"
+          crestColor="#e8e8e8"
+          speed={0.55}
+          amplitude={2.5}
+          waveScale={0.65}
+          swell={30}
+          turbulence={20}
+          tilt={1.15}
+          zoom={1.1}
+          height={5}
+          fogDepth={16}
+          detail="medium"
+          brightness={0.85}
+          opacity={0.9}
+          mouseInteraction
+          parallaxStrength={0.35}
+          grain
+          grainIntensity={0.04}
+        />
+      </div>
+
+      <div className="relative z-10 mx-auto grid max-w-5xl overflow-hidden border border-dash-border bg-dash-surface md:grid-cols-[1.05fr_0.95fr]">
 
         <section className="hidden flex-col justify-between bg-dash-accent p-10 text-dash-bg md:flex">
           <div>
