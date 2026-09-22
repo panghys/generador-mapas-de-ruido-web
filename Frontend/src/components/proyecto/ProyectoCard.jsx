@@ -2,6 +2,7 @@
 import { useState } from "react";
 import EstadoBadge from "./EstadoBadge";
 import DeleteConfirmModal from "./DeleteConfirmModal";
+import MiniMapaPreview from "./MiniMapaPreview";
 
 const formatFecha = (fecha) =>
   new Date(fecha).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" });
@@ -31,13 +32,13 @@ const ProyectoCard = ({ proyecto, onOpen, onDelete }) => {
         onClick={() => onOpen(proyecto)}
         className="text-left bg-dash-surface hover:bg-dash-surface-hover border border-dash-border rounded-xl overflow-hidden transition-colors group cursor-pointer relative"
       >
-        {/* Zona de vista previa del mapa — placeholder hasta que exista el cálculo real */}
-        <div className={`aspect-[16/7] flex items-center justify-center border-b border-dash-border ${proyecto.preview === "river" ? "bg-[linear-gradient(135deg,#183b43_0%,#1a252a_42%,#0d171b_43%,#14282b_100%)]" : "bg-[linear-gradient(135deg,#254d4c_0%,#1a302f_36%,#142026_37%,#10171b_100%)]"}`}>
-          {proyecto.preview_url ? (
-            <img src={proyecto.preview_url} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <div className="text-center"><div className="mx-auto mb-2 h-8 w-8 rounded-full border border-dash-accent/50 bg-dash-accent/10" /><span className="text-xs text-white/70">Vista previa del mapa</span></div>
-          )}
+        {/* Vista previa: mini-mapa de la zona delimitada, o placeholder si aún no existe */}
+        <div className="relative h-[150px] border-b border-dash-border">
+          <MiniMapaPreview zona={proyecto.zona} proyectoId={proyecto.id} />
+
+          <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-dash-bg/80 px-2.5 py-1 text-xs font-medium text-dash-text-soft backdrop-blur-sm">
+            📍 {proyecto.comuna ? `${proyecto.comuna}, ${proyecto.region}` : "Ubicación pendiente"}
+          </span>
         </div>
 
         <div className="p-4">
@@ -63,8 +64,7 @@ const ProyectoCard = ({ proyecto, onOpen, onDelete }) => {
           </div>
 
           <h3 className="text-dash-text font-medium text-sm mb-1">{proyecto.nombre}</h3>
-          <p className="text-dash-text-soft text-sm mb-1 line-clamp-1">{proyecto.descripcion || "Sin descripción"}</p>
-          <p className="mb-3 text-xs text-dash-text-soft">{proyecto.comuna ? `${proyecto.comuna}, ${proyecto.region}` : "Ubicación pendiente"}</p>
+          <p className="text-dash-text-soft text-sm mb-3 line-clamp-1">{proyecto.descripcion || "Sin descripción"}</p>
 
           <span className="font-mono text-xs text-dash-text-soft">
             {formatFecha(proyecto.fecha_modificacion)}
