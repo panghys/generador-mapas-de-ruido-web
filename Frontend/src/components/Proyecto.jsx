@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ListaProyectos from "./proyecto/ListaProyectos";
 import clientAxios from "./config/clienteAxios";
+import GradientWaves from "./ui/GradientWaves";
 
 const filtros = [
   { valor: "todos", label: "Todos" },
@@ -54,44 +55,71 @@ const Proyecto = () => {
   };
 
   return (
-    <div className="min-h-screen bg-dash-bg font-sans px-6 py-10">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-2xl font-semibold text-dash-text">Mis proyectos</h1>
-          <button
-            onClick={handleNuevo}
-            className="px-4 py-2 text-sm bg-dash-accent text-dash-bg font-medium rounded-lg hover:opacity-90 transition-opacity"
-          >
-            + Nuevo proyecto
-          </button>
-        </div>
-        <p className="text-dash-text-soft text-sm mb-6">
-          {proyectos.length} proyectos · {listos} listo{listos !== 1 ? "s" : ""}
-        </p>
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-dash-bg font-sans">
+      {/* Fondo animado WebGL — sutil, decorativo, sin capturar interacción del mouse */}
+      <div className="pointer-events-none fixed inset-0 z-0">
+        <GradientWaves
+          horizonColor="#00dfc3"
+          waveColor="#000000"
+          crestColor="#e8e8e8"
+          speed={0.55}
+          amplitude={2.5}
+          waveScale={0.65}
+          swell={30}
+          turbulence={20}
+          tilt={1.15}
+          zoom={1.1}
+          height={5}
+          fogDepth={16}
+          detail="medium"
+          brightness={0.7}
+          opacity={0.45}
+          mouseInteraction={false}
+          parallaxStrength={0.35}
+          grain
+          grainIntensity={0.04}
+        />
+      </div>
 
-        <div className="flex gap-1 mb-6">
-          {filtros.map((f) => (
+      <div className="relative z-10 px-6 py-10">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center justify-between mb-1">
+            <h1 className="text-2xl font-semibold text-dash-text">Mis proyectos</h1>
             <button
-              key={f.valor}
-              onClick={() => setFiltroActivo(f.valor)}
-              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                filtroActivo === f.valor
-                  ? "bg-dash-accent-soft text-dash-accent"
-                  : "text-dash-text-soft hover:text-dash-text"
-              }`}
+              onClick={handleNuevo}
+              className="px-4 py-2 text-sm bg-dash-accent text-dash-bg font-medium rounded-lg hover:opacity-90 transition-opacity"
             >
-              {f.label}
+              + Nuevo proyecto
             </button>
-          ))}
+          </div>
+          <p className="text-dash-text-soft text-sm mb-6">
+            {proyectos.length} proyectos · {listos} listo{listos !== 1 ? "s" : ""}
+          </p>
+
+          <div className="flex gap-1 mb-6">
+            {filtros.map((f) => (
+              <button
+                key={f.valor}
+                onClick={() => setFiltroActivo(f.valor)}
+                className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                  filtroActivo === f.valor
+                    ? "bg-dash-accent-soft text-dash-accent"
+                    : "text-dash-text-soft hover:text-dash-text"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
+
+          {cargando ? (
+            <p className="text-dash-text-soft text-sm">Cargando proyectos...</p>
+          ) : (
+            <ListaProyectos proyectos={proyectosFiltrados} onOpen={handleAbrir} onDelete={handleEliminar} />
+          )}
         </div>
-
-        {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
-
-        {cargando ? (
-          <p className="text-dash-text-soft text-sm">Cargando proyectos...</p>
-        ) : (
-          <ListaProyectos proyectos={proyectosFiltrados} onOpen={handleAbrir} onDelete={handleEliminar} />
-        )}
       </div>
     </div>
   );
