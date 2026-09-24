@@ -1,0 +1,29 @@
+# ==========================================
+# Base de datos (MariaDB)
+# ==========================================
+MYSQL_ROOT_PASSWORD="pf$6#iAEQ#@y7vMnXiTXLLC#wiEHcn"
+MYSQL_DATABASE=test
+MYSQL_USER=manager_test
+MYSQL_PASSWORD="RqoKdtp88Z94v7vL#XKVHPxWdb9dw"
+
+# ==========================================
+# Backend (Express / Node)
+# ==========================================
+PORT=4003
+DB_HOST=grupo3_db
+DB_PORT=3306
+DB_USER=manager_test
+DB_PASSWORD="RqoKdtp88Z94v7vL#XKVHPxWdb9dw"
+DB_NAME=test
+ORIGIN=http://grupo3.146.83.216.166.nip.io
+JWT_SECRET=641bb809d13887fab42f734afee2394c3bf335e315a5566b887693a0cfc7cde1
+GOOGLE_CLIENT_ID=46219354951-b873ir8dj65abbf881numdf935ri4a9g.apps.googleusercontent.com
+
+# ==========================================
+# Frontend (Vite / React)
+# ==========================================
+VITE_APP_HOST=0.0.0.0
+VITE_APP_PORT=3003
+VITE_BACKEND_URL=http://grupo3.146.83.216.166.nip.io
+VITE_ALLOWED_HOSTS=grupo3.146.83.216.166.nip.io,localhost
+VITE_GOOGLE_CLIENT_ID=46219354951-b873ir8dj65abbf881numdf935ri4a9g.apps.googleusercontent.com
