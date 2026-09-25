@@ -5,8 +5,6 @@ import clientAxios from "../config/clienteAxios";
 const ProyectoNuevo = () => {
   const navigate = useNavigate();
   const [nombre, setNombre] = useState("");
-  const [region, setRegion] = useState("");
-  const [comuna, setComuna] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [estado, setEstado] = useState("borrador");
   const [error, setError] = useState("");
@@ -15,8 +13,8 @@ const ProyectoNuevo = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!nombre.trim() || !region || !comuna) {
-      setError("Completa el nombre, la región y la comuna para continuar.");
+    if (!nombre.trim()) {
+      setError("Completa el nombre del proyecto para continuar.");
       return;
     }
 
@@ -26,8 +24,6 @@ const ProyectoNuevo = () => {
     try {
       await clientAxios.post("/proyectos", {
         nombre: nombre.trim(),
-        region,
-        comuna,
         descripcion: descripcion.trim(),
         estado,
       });
@@ -54,29 +50,12 @@ const ProyectoNuevo = () => {
           <p className="mb-2 text-sm font-medium uppercase tracking-[0.18em] text-dash-accent">Nuevo proyecto</p>
           <h1 className="text-3xl font-semibold text-dash-text">Crea un proyecto de ruido</h1>
           <p className="mt-2 max-w-xl text-sm leading-6 text-dash-text-soft">
-            Define los datos básicos para comenzar a preparar tu mapa y organizar sus mediciones.
+            Define el nombre y la descripción para comenzar. La ubicación se define más adelante, delimitando la zona directamente en el mapa.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="border border-dash-border bg-dash-surface p-6 shadow-sm sm:p-8">
           <div className="space-y-6">
-            <div className="grid gap-6 sm:grid-cols-2">
-              <div>
-                <label htmlFor="region" className="mb-2 block text-sm font-medium text-dash-text">Región</label>
-                <select id="region" value={region} onChange={(event) => setRegion(event.target.value)} className="w-full border border-dash-border bg-white px-3 py-2.5 text-sm text-dash-text outline-none focus:border-dash-accent">
-                  <option value="">Selecciona una región</option>
-                  <option>Los Ríos</option>
-                  <option>Los Lagos</option>
-                  <option>La Araucanía</option>
-                  <option>Metropolitana</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="comuna" className="mb-2 block text-sm font-medium text-dash-text">Comuna</label>
-                <input id="comuna" value={comuna} onChange={(event) => setComuna(event.target.value)} placeholder="Ej: Valdivia" className="w-full border border-dash-border bg-white px-3 py-2.5 text-sm text-dash-text outline-none placeholder:text-dash-text-soft focus:border-dash-accent" />
-              </div>
-            </div>
-
             <div>
               <label htmlFor="nombre" className="mb-2 block text-sm font-medium text-dash-text">
                 Nombre del proyecto
@@ -91,7 +70,7 @@ const ProyectoNuevo = () => {
                   setError("");
                 }}
                 placeholder="Ej: Diagnóstico Isla Teja"
-                className="w-full border border-dash-border bg-white px-3 py-2.5 text-sm text-dash-text outline-none transition-colors placeholder:text-dash-text-soft focus:border-dash-accent"
+                className="w-full border border-dash-border bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-dash-accent"
               />
               {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
             </div>
@@ -106,7 +85,7 @@ const ProyectoNuevo = () => {
                 onChange={(event) => setDescripcion(event.target.value)}
                 placeholder="Breve descripción del área o propósito del proyecto"
                 rows={5}
-                className="w-full resize-none border border-dash-border bg-white px-3 py-2.5 text-sm text-dash-text outline-none transition-colors placeholder:text-dash-text-soft focus:border-dash-accent"
+                className="w-full resize-none border border-dash-border bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-dash-accent"
               />
             </div>
 
@@ -118,7 +97,7 @@ const ProyectoNuevo = () => {
                 id="estado"
                 value={estado}
                 onChange={(event) => setEstado(event.target.value)}
-                className="w-full border border-dash-border bg-white px-3 py-2.5 text-sm text-dash-text outline-none focus:border-dash-accent"
+                className="w-full border border-dash-border bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-dash-accent"
               >
                 <option value="borrador">Borrador</option>
                 <option value="listo">Listo</option>

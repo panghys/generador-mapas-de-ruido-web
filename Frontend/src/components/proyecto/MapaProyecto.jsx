@@ -56,6 +56,50 @@ const calleEstaDentroDeZona = (trazoGeoJSON, zonaGeoJSON) => {
   }
 };
 
+// ---- Búsqueda de ubicación: parser de coordenadas con casos de borde ----
+
+// Admite números con signo, con o sin sufijo de dirección cardinal:
+// "-39.8142" | "39.8142 S" | "39.8142S" | "73.2459°W"
+const limpiarComponenteCoordenada = (token) => {
+  const match = token.trim().match(/^(-?\d+(?:\.\d+)?)\s*°?\s*([NSEW])?$/i);
+  if (!match) return null;
+
+  let valor = Number(match[1]);
+  if (Number.isNaN(valor)) return null;
+
+  const direccion = match[2]?.toUpperCase();
+  if (direccion === "S" || direccion === "W") valor = -Math.abs(valor);
+  if (direccion === "N" || direccion === "E") valor = Math.abs(valor);
+
+  return valor;
+};
+
+// Devuelve { lat, lng } si el texto es una coordenada válida,
+// { fueraDeRango: true } si tiene forma de coordenada pero valores inválidos,
+// o null si no tiene forma de coordenada (se interpreta como nombre de lugar).
+const parsearComoCoordenadas = (texto) => {
+  const limpio = texto.trim().replace(/\s+/g, " ");
+  if (!limpio) return null;
+
+  // admite separación por coma ("lat, lng" / "lat,lng") o por espacio ("lat lng")
+  const partes = limpio.includes(",")
+    ? limpio.split(",").map((v) => v.trim())
+    : limpio.split(" ");
+
+  if (partes.length !== 2) return null;
+
+  const lat = limpiarComponenteCoordenada(partes[0]);
+  const lng = limpiarComponenteCoordenada(partes[1]);
+
+  if (lat === null || lng === null) return null;
+
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    return { fueraDeRango: true };
+  }
+
+  return { lat, lng };
+};
+
 const estiloZona = {
   color: "#2dd4bf",
   weight: 2,
@@ -71,6 +115,10 @@ const estiloCallePendiente = {
   opacity: 1,
 };
 
+// Vista inicial cuando el proyecto todavía no tiene zona delimitada:
+// Chile completo a bajo zoom, en vez de una ciudad fija por defecto.
+const VISTA_INICIAL_SIN_ZONA = { centro: [-35.6751, -71.543], zoom: 4 };
+
 const MapaProyecto = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -85,7 +133,7 @@ const MapaProyecto = () => {
 
   const [delimitando, setDelimitando] = useState(null); // "area" | "calle" | "mark" | null
   const [coordenadas, setCoordenadas] = useState("");
-  const [errorCoordenadas, setErrorCoordenadas] = useState(false);
+  const [errorBusqueda, setErrorBusqueda] = useState(""); // mensaje de error, o "" si no hay
   const [buscando, setBuscando] = useState(false);
 
   // Trazo recién dibujado, válido, pero aún no confirmado/guardado por el usuario
@@ -117,13 +165,18 @@ const MapaProyecto = () => {
       .finally(() => setCargandoProyecto(false));
   }, [proyectoId, proyecto]);
 
-  // Crea el mapa UNA sola vez, dibuja la zona guardada y carga las calles guardadas.
-  // Depende de proyectoId (estable), no del objeto proyecto completo, para no
-  // recrear el mapa cada vez que se guarda la zona o se edita una calle.
+  // Crea el mapa UNA sola vez, dibuja la zona guardada (o una vista general de Chile
+  // si aún no existe) y carga las calles guardadas. Depende de proyectoId (estable),
+  // no del objeto proyecto completo, para no recrear el mapa en cada guardado.
   useEffect(() => {
     if (!mapRef.current || !proyectoId || !proyecto) return;
 
-    const map = L.map(mapRef.current).setView([-39.8142, -73.2459], 13);
+    const vistaInicial = proyecto.zona ? null : VISTA_INICIAL_SIN_ZONA;
+
+    const map = vistaInicial
+      ? L.map(mapRef.current).setView(vistaInicial.centro, vistaInicial.zoom)
+      : L.map(mapRef.current).setView([0, 0], 2);
+
     mapInstance.current = map;
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -133,6 +186,7 @@ const MapaProyecto = () => {
     if (proyecto.zona) {
       const capaZona = L.polygon(polygonALatLngs(proyecto.zona), estiloZona).addTo(map);
       zonaLayerRef.current = capaZona;
+      map.fitBounds(capaZona.getBounds(), { padding: [30, 30] });
     }
 
     setCargandoCalles(true);
@@ -189,7 +243,6 @@ const MapaProyecto = () => {
         const layer = e.layer;
         const trazo = layerALineString(layer);
 
-        // Sin zona delimitada no se puede validar contención -> se rechaza
         if (!proyecto.zona) {
           layer.remove();
           window.alert("Primero debes delimitar la zona del proyecto antes de trazar calles.");
@@ -204,8 +257,6 @@ const MapaProyecto = () => {
           return;
         }
 
-        // El trazo queda visible y resaltado; el usuario decide guardar o cancelar
-        // desde los botones del panel lateral — el modal ya NO se abre automático.
         layer.setStyle(estiloCallePendiente);
         layer.bringToFront();
 
@@ -302,10 +353,10 @@ const MapaProyecto = () => {
   // ---- Calles ----
 
   const abrirModalParaEditar = (calle) => {
-    if (modoOcupado) return; // evita abrir el modal si hay otra acción en curso
+    if (modoOcupado) return;
 
     calle.layer.bringToFront();
-    calle.layer.setStyle({ weight: 8 }); // resalta la línea seleccionada
+    calle.layer.setStyle({ weight: 8 });
 
     setModalDatosIniciales(calle);
     setModalCalleAbierto(true);
@@ -313,7 +364,7 @@ const MapaProyecto = () => {
 
   const abrirModalParaGuardarTrazo = () => {
     if (!trazoPendiente) return;
-    setModalDatosIniciales(null); // modo creación
+    setModalDatosIniciales(null);
     setModalCalleAbierto(true);
   };
 
@@ -326,7 +377,6 @@ const MapaProyecto = () => {
   const guardarCalleDesdeModal = async (datos) => {
     try {
       if (modalDatosIniciales?.id) {
-        // edición de una calle existente
         const { data } = await clientAxios.put(
           `/proyectos/${proyectoId}/calles/${modalDatosIniciales.id}`,
           datos
@@ -338,7 +388,6 @@ const MapaProyecto = () => {
           actuales.map((c) => (c.id === modalDatosIniciales.id ? { ...c, ...data.data } : c))
         );
       } else {
-        // confirmación de un trazo pendiente
         const layer = trazoPendiente.layer;
 
         const { data } = await clientAxios.post(`/proyectos/${proyectoId}/calles`, {
@@ -364,10 +413,8 @@ const MapaProyecto = () => {
 
   const cancelarModalCalle = () => {
     if (!modalDatosIniciales) {
-      // se estaba confirmando un trazo nuevo: descarta el trazo pendiente sin tocar la BD
       cancelarTrazoPendiente();
     } else {
-      // era edición: solo se quita el resaltado, nada se pierde
       modalDatosIniciales.layer.setStyle({ weight: 5 });
     }
 
@@ -394,54 +441,74 @@ const MapaProyecto = () => {
     setter(valor === "" ? 0 : Number(valor));
   };
 
-  // ---- Buscador de ciudad / coordenadas ----
-
-  const parsearComoCoordenadas = (texto) => {
-    const partes = texto.split(",").map((valor) => valor.trim());
-    if (partes.length !== 2) return null;
-
-    const lat = Number(partes[0]);
-    const lng = Number(partes[1]);
-
-    if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
-    if (lat < -90 || lat > 90) return null;
-    if (lng < -180 || lng > 180) return null;
-
-    return { lat, lng };
-  };
+  // ---- Buscador de coordenadas / ciudad / país ----
 
   const buscarUbicacion = async () => {
     const texto = coordenadas.trim();
-    if (!texto) return;
+    if (!texto || buscando) return;
 
-    const comoCoordenadas = parsearComoCoordenadas(texto);
-    if (comoCoordenadas) {
-      setErrorCoordenadas(false);
-      mapInstance.current?.flyTo([comoCoordenadas.lat, comoCoordenadas.lng], 13);
+    const resultado = parsearComoCoordenadas(texto);
+
+    if (resultado?.fueraDeRango) {
+      setErrorBusqueda("Coordenadas fuera de rango. La latitud debe estar entre -90 y 90, y la longitud entre -180 y 180.");
       return;
     }
 
+    if (resultado) {
+      setErrorBusqueda("");
+      mapInstance.current?.flyTo([resultado.lat, resultado.lng], 13);
+      return;
+    }
+
+    // No tiene forma de coordenada -> se interpreta como nombre de ciudad, país o lugar
     setBuscando(true);
-    setErrorCoordenadas(false);
+    setErrorBusqueda("");
 
     try {
       const respuesta = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(texto)}`
       );
 
-      if (!respuesta.ok) throw new Error("Fallo la consulta de geocodificación");
+      if (!respuesta.ok) {
+        throw new Error("network");
+      }
 
       const resultados = await respuesta.json();
 
       if (!resultados.length) {
-        setErrorCoordenadas(true);
+        setErrorBusqueda("No se encontró esa ciudad, país o lugar. Verifica el nombre e intenta de nuevo.");
         return;
       }
 
-      const { lat, lon } = resultados[0];
-      mapInstance.current?.flyTo([Number(lat), Number(lon)], 13);
+      const { lat, lon, boundingbox } = resultados[0];
+
+      // Solo usamos fitBounds cuando el área es realmente grande (país/región):
+      // el boundingbox de una comuna o ciudad chilena puede cubrir zona rural
+      // extensa y alejaría demasiado el zoom si lo tratáramos igual.
+      let esAreaGrande = false;
+
+      if (Array.isArray(boundingbox) && boundingbox.length === 4) {
+        const [south, north, west, east] = boundingbox.map(Number);
+        const alturaGrados = Math.abs(north - south);
+        const anchoGrados = Math.abs(east - west);
+
+        if (Math.max(alturaGrados, anchoGrados) > 2) {
+          esAreaGrande = true;
+          mapInstance.current?.flyToBounds(
+            [
+              [south, west],
+              [north, east],
+            ],
+            { padding: [40, 40], duration: 1 }
+          );
+        }
+      }
+
+      if (!esAreaGrande) {
+        mapInstance.current?.flyTo([Number(lat), Number(lon)], 13);
+      }
     } catch (err) {
-      setErrorCoordenadas(true);
+      setErrorBusqueda("No se pudo conectar con el servicio de búsqueda. Intenta nuevamente.");
     } finally {
       setBuscando(false);
     }
@@ -483,9 +550,12 @@ const MapaProyecto = () => {
           </div>
 
           <h1 className="text-3xl font-semibold">{proyecto.nombre}</h1>
-          <p className="mt-2 text-sm text-dash-text-soft">
-            {proyecto.comuna}, {proyecto.region}
-          </p>
+
+          {(proyecto.comuna || proyecto.region) && (
+            <p className="mt-2 text-sm text-dash-text-soft">
+              {[proyecto.comuna, proyecto.region].filter(Boolean).join(", ")}
+            </p>
+          )}
         </div>
 
         <div className="flex items-start gap-4">
@@ -496,12 +566,12 @@ const MapaProyecto = () => {
                 value={coordenadas}
                 onChange={(e) => {
                   setCoordenadas(e.target.value);
-                  setErrorCoordenadas(false);
+                  setErrorBusqueda("");
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") buscarUbicacion();
                 }}
-                placeholder="Ej: Valdivia, Osorno o -39.8142, -73.2459"
+                placeholder="Ej: Valdivia, Chile o -39.8142, -73.2459"
                 className="flex-1 border border-dash-border bg-[#162326] px-4 py-2.5 text-sm text-white outline-none placeholder:text-dash-text-soft focus:border-dash-accent"
               />
 
@@ -527,11 +597,7 @@ const MapaProyecto = () => {
               </button>
             </div>
 
-            {errorCoordenadas && (
-              <p className="mb-3 text-sm text-red-400">
-                No se encontró esa coordenada o ubicación. Intenta con otro nombre o formato "lat, lng".
-              </p>
-            )}
+            {errorBusqueda && <p className="mb-3 text-sm text-red-400">{errorBusqueda}</p>}
 
             {delimitando && (
               <div className="mb-3 flex items-center gap-2 border border-dash-accent bg-dash-accent/10 px-4 py-2 text-sm font-medium text-dash-accent">

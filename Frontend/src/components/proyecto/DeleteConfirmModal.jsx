@@ -1,9 +1,10 @@
 // Frontend/src/components/proyecto/DeleteConfirmModal.jsx
+import { createPortal } from "react-dom";
+
 const DeleteConfirmModal = ({ proyecto, onConfirm, onCancel, isLoading }) => {
-  return (
-    <div className="fixed inset-0 bg-ink/30 flex items-center justify-center z-50 animate-[fadeIn_0.15s_ease-out]">
-      <div className="bg-dash-surface rounded-2xl w-full max-w-md mx-4 p-6 shadow-sm border border-dash-border">
-        {/* Icono de alerta */}
+  const contenido = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-ink/30 p-4 animate-[fadeIn_0.15s_ease-out]">
+      <div className="bg-dash-surface rounded-2xl w-full max-w-md p-6 shadow-2xl border border-dash-border">
         <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-500/10 mx-auto mb-4">
           <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -58,6 +59,8 @@ const DeleteConfirmModal = ({ proyecto, onConfirm, onCancel, isLoading }) => {
       </div>
     </div>
   );
+
+  return createPortal(contenido, document.body);
 };
 
 export default DeleteConfirmModal;
