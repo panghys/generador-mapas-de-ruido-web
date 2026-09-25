@@ -1,16 +1,17 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import booleanWithin from "@turf/boolean-within";
+import buffer from "@turf/buffer";
 import { lineString, polygon as turfPolygon } from "@turf/helpers";
 import EstadoBadge from "./EstadoBadge";
 import clientAxios from "../config/clienteAxios";
 import CalleModal from "./CalleModal";
+import InstruccionesMapaModal from "./InstruccionesMapaModal";
+import { NIVELES_RUIDO } from "./nivelesRuido";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import "@geoman-io/leaflet-geoman-free";
-
-// ---- Helpers de conversión Leaflet <-> GeoJSON ----
 
 const layerALineString = (layer) => {
   const latlngs = layer.getLatLngs();
@@ -26,7 +27,7 @@ const lineStringALatLngs = (geojson) => {
 };
 
 const layerAPolygon = (layer) => {
-  const anillo = layer.getLatLngs()[0]; // asumimos polígono sin huecos
+  const anillo = layer.getLatLngs()[0];
   const coords = anillo.map((p) => [p.lng, p.lat]);
 
   const primero = coords[0];
@@ -43,23 +44,21 @@ const polygonALatLngs = (geojson) => {
   return geojson.coordinates[0].map(([lng, lat]) => [lat, lng]);
 };
 
-// Valida que el trazo de la calle caiga completo dentro de la zona
+const TOLERANCIA_BORDE_ZONA_METROS = 5;
+
 const calleEstaDentroDeZona = (trazoGeoJSON, zonaGeoJSON) => {
   if (!zonaGeoJSON) return false;
 
   try {
     const linea = lineString(trazoGeoJSON.coordinates);
     const area = turfPolygon(zonaGeoJSON.coordinates);
-    return booleanWithin(linea, area);
+    const areaConTolerancia = buffer(area, TOLERANCIA_BORDE_ZONA_METROS, { units: "meters" });
+    return booleanWithin(linea, areaConTolerancia);
   } catch (err) {
     return false;
   }
 };
 
-// ---- Búsqueda de ubicación: parser de coordenadas con casos de borde ----
-
-// Admite números con signo, con o sin sufijo de dirección cardinal:
-// "-39.8142" | "39.8142 S" | "39.8142S" | "73.2459°W"
 const limpiarComponenteCoordenada = (token) => {
   const match = token.trim().match(/^(-?\d+(?:\.\d+)?)\s*°?\s*([NSEW])?$/i);
   if (!match) return null;
@@ -74,14 +73,10 @@ const limpiarComponenteCoordenada = (token) => {
   return valor;
 };
 
-// Devuelve { lat, lng } si el texto es una coordenada válida,
-// { fueraDeRango: true } si tiene forma de coordenada pero valores inválidos,
-// o null si no tiene forma de coordenada (se interpreta como nombre de lugar).
 const parsearComoCoordenadas = (texto) => {
   const limpio = texto.trim().replace(/\s+/g, " ");
   if (!limpio) return null;
 
-  // admite separación por coma ("lat, lng" / "lat,lng") o por espacio ("lat lng")
   const partes = limpio.includes(",")
     ? limpio.split(",").map((v) => v.trim())
     : limpio.split(" ");
@@ -107,7 +102,6 @@ const estiloZona = {
   fillOpacity: 0.15,
 };
 
-// Estilo bien contrastante para que el trazo pendiente nunca pase desapercibido
 const estiloCallePendiente = {
   color: "#facc15",
   weight: 6,
@@ -115,8 +109,6 @@ const estiloCallePendiente = {
   opacity: 1,
 };
 
-// Vista inicial cuando el proyecto todavía no tiene zona delimitada:
-// Chile completo a bajo zoom, en vez de una ciudad fija por defecto.
 const VISTA_INICIAL_SIN_ZONA = { centro: [-35.6751, -71.543], zoom: 4 };
 
 const MapaProyecto = () => {
@@ -131,13 +123,12 @@ const MapaProyecto = () => {
   const [calles, setCalles] = useState([]);
   const [marcadores, setMarcadores] = useState([]);
 
-  const [delimitando, setDelimitando] = useState(null); // "area" | "calle" | "mark" | null
+  const [delimitando, setDelimitando] = useState(null);
   const [coordenadas, setCoordenadas] = useState("");
-  const [errorBusqueda, setErrorBusqueda] = useState(""); // mensaje de error, o "" si no hay
+  const [errorBusqueda, setErrorBusqueda] = useState("");
   const [buscando, setBuscando] = useState(false);
 
-  // Trazo recién dibujado, válido, pero aún no confirmado/guardado por el usuario
-  const [trazoPendiente, setTrazoPendiente] = useState(null); // { layer, trazoGeoJSON } | null
+  const [trazoPendiente, setTrazoPendiente] = useState(null);
 
   const [modalCalleAbierto, setModalCalleAbierto] = useState(false);
   const [modalDatosIniciales, setModalDatosIniciales] = useState(null);
@@ -145,16 +136,27 @@ const MapaProyecto = () => {
   const [editandoZona, setEditandoZona] = useState(false);
 
   const [parametroTest, setParametroTest] = useState(0);
+  const [instruccionesAbiertas, setInstruccionesAbiertas] = useState(false);
 
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const zonaLayerRef = useRef(null);
+  const resaltadoLayerRef = useRef(null);
 
-  // Mientras haya cualquier acción activa se bloquean las demás, para que no se pisen
+  const modoOcupadoRef = useRef(false);
+  const callesRef = useRef([]);
+
   const modoOcupado =
     delimitando !== null || editandoZona || modalCalleAbierto || trazoPendiente !== null;
 
-  // Trae el proyecto si no llegó por navegación (ej: recarga directa)
+  useEffect(() => {
+    modoOcupadoRef.current = modoOcupado;
+  }, [modoOcupado]);
+
+  useEffect(() => {
+    callesRef.current = calles;
+  }, [calles]);
+
   useEffect(() => {
     if (proyecto) return;
 
@@ -165,17 +167,16 @@ const MapaProyecto = () => {
       .finally(() => setCargandoProyecto(false));
   }, [proyectoId, proyecto]);
 
-  // Crea el mapa UNA sola vez, dibuja la zona guardada (o una vista general de Chile
-  // si aún no existe) y carga las calles guardadas. Depende de proyectoId (estable),
-  // no del objeto proyecto completo, para no recrear el mapa en cada guardado.
   useEffect(() => {
     if (!mapRef.current || !proyectoId || !proyecto) return;
 
     const vistaInicial = proyecto.zona ? null : VISTA_INICIAL_SIN_ZONA;
 
+    const rendererConTolerancia = L.canvas({ tolerance: 8 });
+
     const map = vistaInicial
-      ? L.map(mapRef.current).setView(vistaInicial.centro, vistaInicial.zoom)
-      : L.map(mapRef.current).setView([0, 0], 2);
+      ? L.map(mapRef.current, { renderer: rendererConTolerancia }).setView(vistaInicial.centro, vistaInicial.zoom)
+      : L.map(mapRef.current, { renderer: rendererConTolerancia }).setView([0, 0], 2);
 
     mapInstance.current = map;
 
@@ -200,7 +201,7 @@ const MapaProyecto = () => {
           }).addTo(map);
 
           const calleObj = { ...calleDb, layer };
-          layer.on("click", () => abrirModalParaEditar(calleObj));
+          layer.on("click", () => abrirModalParaEditarPorId(calleObj.id));
           return calleObj;
         });
 
@@ -217,7 +218,6 @@ const MapaProyecto = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proyectoId]);
 
-  // Activa/desactiva las herramientas de dibujo de Geoman según el modo elegido
   useEffect(() => {
     const map = mapInstance.current;
     if (!map) return;
@@ -225,7 +225,12 @@ const MapaProyecto = () => {
     if (delimitando === "area") {
       map.pm.enableDraw("Polygon");
     } else if (delimitando === "calle") {
-      map.pm.enableDraw("Line");
+      map.pm.setGlobalOptions({ finishOnEnter: true });
+      map.pm.enableDraw("Line", {
+        finishOn: "dblclick",
+        templineStyle: estiloCallePendiente,
+        hintlineStyle: { color: "#facc15", dashArray: "6, 6" },
+      });
     } else if (delimitando === "mark") {
       map.pm.enableDraw("Marker");
     } else {
@@ -233,7 +238,6 @@ const MapaProyecto = () => {
     }
   }, [delimitando]);
 
-  // Reacciona cuando Geoman termina un dibujo (línea, polígono o marcador)
   useEffect(() => {
     const map = mapInstance.current;
     if (!map) return;
@@ -281,8 +285,6 @@ const MapaProyecto = () => {
     return () => map.off("pm:create", dibujoTerminado);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parametroTest, proyecto]);
-
-  // ---- Zona del proyecto ----
 
   const guardarZona = async (layer) => {
     const geojson = layerAPolygon(layer);
@@ -350,17 +352,42 @@ const MapaProyecto = () => {
     });
   };
 
-  // ---- Calles ----
+  const resaltarCalle = (calle) => {
+    quitarResaltadoCalle();
+    if (!mapInstance.current) return;
 
-  const abrirModalParaEditar = (calle) => {
-    if (modoOcupado) return;
+    const halo = L.polyline(calle.layer.getLatLngs(), {
+      color: "#ffffff",
+      weight: 12,
+      opacity: 0.55,
+      interactive: false,
+    }).addTo(mapInstance.current);
 
+    halo.bringToBack();
     calle.layer.bringToFront();
-    calle.layer.setStyle({ weight: 8 });
-
-    setModalDatosIniciales(calle);
-    setModalCalleAbierto(true);
+    resaltadoLayerRef.current = halo;
   };
+
+  const quitarResaltadoCalle = () => {
+    if (resaltadoLayerRef.current && mapInstance.current) {
+      mapInstance.current.removeLayer(resaltadoLayerRef.current);
+    }
+    resaltadoLayerRef.current = null;
+  };
+
+  const abrirModalParaEditarPorId = useCallback((calleId) => {
+    if (modoOcupadoRef.current) return;
+
+    const calleActual = callesRef.current.find((c) => c.id === calleId);
+    if (!calleActual) return;
+
+    resaltarCalle(calleActual);
+    calleActual.layer.setStyle({ weight: 8 });
+
+    setModalDatosIniciales(calleActual);
+    setModalCalleAbierto(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const abrirModalParaGuardarTrazo = () => {
     if (!trazoPendiente) return;
@@ -383,6 +410,7 @@ const MapaProyecto = () => {
         );
 
         modalDatosIniciales.layer.setStyle({ color: datos.color_asignado, weight: 5 });
+        quitarResaltadoCalle();
 
         setCalles((actuales) =>
           actuales.map((c) => (c.id === modalDatosIniciales.id ? { ...c, ...data.data } : c))
@@ -398,7 +426,7 @@ const MapaProyecto = () => {
         layer.setStyle({ color: datos.color_asignado, weight: 5, dashArray: null, opacity: 1 });
 
         const nuevaCalle = { ...data.data, layer };
-        layer.on("click", () => abrirModalParaEditar(nuevaCalle));
+        layer.on("click", () => abrirModalParaEditarPorId(nuevaCalle.id));
 
         setCalles((actuales) => [...actuales, nuevaCalle]);
         setTrazoPendiente(null);
@@ -416,6 +444,7 @@ const MapaProyecto = () => {
       cancelarTrazoPendiente();
     } else {
       modalDatosIniciales.layer.setStyle({ weight: 5 });
+      quitarResaltadoCalle();
     }
 
     setModalCalleAbierto(false);
@@ -428,6 +457,7 @@ const MapaProyecto = () => {
     try {
       await clientAxios.delete(`/proyectos/${proyectoId}/calles/${modalDatosIniciales.id}`);
       mapInstance.current.removeLayer(modalDatosIniciales.layer);
+      quitarResaltadoCalle();
       setCalles((actuales) => actuales.filter((c) => c.id !== modalDatosIniciales.id));
       setModalCalleAbierto(false);
       setModalDatosIniciales(null);
@@ -440,8 +470,6 @@ const MapaProyecto = () => {
     const valor = e.target.value.replace(/\D/g, "");
     setter(valor === "" ? 0 : Number(valor));
   };
-
-  // ---- Buscador de coordenadas / ciudad / país ----
 
   const buscarUbicacion = async () => {
     const texto = coordenadas.trim();
@@ -460,7 +488,6 @@ const MapaProyecto = () => {
       return;
     }
 
-    // No tiene forma de coordenada -> se interpreta como nombre de ciudad, país o lugar
     setBuscando(true);
     setErrorBusqueda("");
 
@@ -482,9 +509,6 @@ const MapaProyecto = () => {
 
       const { lat, lon, boundingbox } = resultados[0];
 
-      // Solo usamos fitBounds cuando el área es realmente grande (país/región):
-      // el boundingbox de una comuna o ciudad chilena puede cubrir zona rural
-      // extensa y alejaría demasiado el zoom si lo tratáramos igual.
       let esAreaGrande = false;
 
       if (Array.isArray(boundingbox) && boundingbox.length === 4) {
@@ -602,8 +626,8 @@ const MapaProyecto = () => {
             {delimitando && (
               <div className="mb-3 flex items-center gap-2 border border-dash-accent bg-dash-accent/10 px-4 py-2 text-sm font-medium text-dash-accent">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-dash-accent" />
-                {delimitando === "area" && "Modo delimitación activo: haz clic en el mapa para trazar la zona"}
-                {delimitando === "calle" && "Modo trazado de calle activo: haz clic en el mapa para dibujar la calle"}
+                {delimitando === "area" && "Modo delimitación de zona activo"}
+                {delimitando === "calle" && "Modo trazado de calle activo: Termina el trazado con Enter o con doble click"}
                 {delimitando === "mark" && "Modo marcador activo: haz clic en el mapa para colocarlo"}
               </div>
             )}
@@ -758,6 +782,28 @@ const MapaProyecto = () => {
                 </label>
               </div>
             )}
+
+            <div className="border border-dash-border bg-[#101b1d] p-3">
+              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-dash-text-soft">
+                Niveles de ruido
+              </h2>
+              <div className="flex flex-col gap-2">
+                {NIVELES_RUIDO.map(({ color, etiqueta }) => (
+                  <div key={color} className="flex items-center gap-2 text-sm">
+                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} />
+                    <span>{etiqueta}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setInstruccionesAbiertas(true)}
+              className="w-full border border-dash-border px-2 py-2 text-sm font-semibold text-dash-text hover:bg-[#1d2c2f]"
+            >
+              Cómo usar el mapa
+            </button>
           </div>
         </div>
       </div>
@@ -768,6 +814,11 @@ const MapaProyecto = () => {
         onGuardar={guardarCalleDesdeModal}
         onEliminar={eliminarCalleDesdeModal}
         onCancelar={cancelarModalCalle}
+      />
+
+      <InstruccionesMapaModal
+        abierto={instruccionesAbiertas}
+        onCerrar={() => setInstruccionesAbiertas(false)}
       />
     </main>
   );
