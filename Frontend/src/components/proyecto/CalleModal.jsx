@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { calcularRuidoLocal } from "./ruidoLocal";
 
 const tiposCalle = ["Calle", "Avenida", "Pasaje", "Calle principal"];
 
@@ -14,15 +15,27 @@ const colores = [
   "#FFFFFF",
 ];
 
-const CalleModal = ({ abierto, datosIniciales, onGuardar, onEliminar, onCancelar }) => {
+const CalleModal = ({ abierto, datosIniciales, onGuardar, onEliminar, onCancelar, error }) => {
   const [nombreCalle, setNombreCalle] = useState("");
   const [tipoCalle, setTipoCalle] = useState(tiposCalle[0]);
   const [colorCalle, setColorCalle] = useState("#FF0000");
   const [grandes, setGrandes] = useState(0);
   const [medianos, setMedianos] = useState(0);
   const [pequenos, setPequenos] = useState(0);
+  const [velocidad, setVelocidad] = useState(50);
+  const [tipoSuperficie, setTipoSuperficie] = useState('asfalto_no_ranurado');
+  const [nivelRuidoEstimado, setNivelRuidoEstimado] = useState(null);
 
   const esEdicion = Boolean(datosIniciales?.id);
+
+  useEffect(() => {
+    const nivel = calcularRuidoLocal(
+      { pequeños: pequenos, medianos, grandes },
+      velocidad,
+      tipoSuperficie
+    );
+    setNivelRuidoEstimado(nivel);
+  }, [pequenos, medianos, grandes, velocidad, tipoSuperficie]);
 
   useEffect(() => {
     if (!abierto) return;
@@ -33,6 +46,8 @@ const CalleModal = ({ abierto, datosIniciales, onGuardar, onEliminar, onCancelar
     setGrandes(datosIniciales?.trafico_vehiculos_grandes ?? 0);
     setMedianos(datosIniciales?.trafico_vehiculos_medianos ?? 0);
     setPequenos(datosIniciales?.trafico_vehiculos_pequenos ?? 0);
+    setVelocidad(datosIniciales?.velocidadPromedio ?? 50);
+    setTipoSuperficie(datosIniciales?.tipoSuperficie || "asfalto_no_ranurado");
   }, [abierto, datosIniciales]);
 
   if (!abierto) return null;
@@ -50,6 +65,8 @@ const CalleModal = ({ abierto, datosIniciales, onGuardar, onEliminar, onCancelar
       trafico_vehiculos_grandes: grandes,
       trafico_vehiculos_medianos: medianos,
       trafico_vehiculos_pequenos: pequenos,
+      velocidadPromedio: velocidad,
+      tipoSuperficie,
     });
   };
 
@@ -142,6 +159,42 @@ const CalleModal = ({ abierto, datosIniciales, onGuardar, onEliminar, onCancelar
             />
           </label>
         </div>
+
+        <label className="mb-3 block text-sm">
+          <span className="mb-1 block text-xs text-dash-text-soft">Velocidad promedio (km/h)</span>
+          <input
+            type="number"
+            min="1"
+            value={velocidad}
+            onChange={(e) => setVelocidad(Math.max(1, Number(e.target.value) || 1))}
+            className="w-full border border-dash-border bg-[#10191b] px-3 py-2 text-sm text-white outline-none focus:border-dash-accent"
+          />
+        </label>
+
+        <label className="mb-4 block text-sm">
+          <span className="mb-1 block text-xs text-dash-text-soft">Tipo de superficie</span>
+          <select
+            value={tipoSuperficie}
+            onChange={(e) => setTipoSuperficie(e.target.value)}
+            className="w-full border border-dash-border bg-[#10191b] px-3 py-2 text-sm text-white outline-none focus:border-dash-accent"
+          >
+            <option value="asfalto_no_ranurado">Asfalto no ranurado</option>
+            <option value="concreto_asfalto_rasurado">Concreto ranurado</option>
+            <option value="pedregosa_lisa">Superficie pedregosa lisa</option>
+            <option value="pedregosa_rugosa">Superficie pedregosa rugosa</option>
+            <option value="asfalto_poroso_15_11">Asfalto poroso 15/11</option>
+            <option value="asfalto_poroso_15_8">Asfalto poroso 15/8</option>
+          </select>
+        </label>
+
+        <p className="mb-5 text-sm text-dash-text-soft" aria-live="polite">
+          Nivel de ruido estimado:{" "}
+          <strong className="text-dash-text">
+            {nivelRuidoEstimado === null ? "Sin tráfico" : `${nivelRuidoEstimado} dB(A)`}
+          </strong>
+        </p>
+
+        {error && <p className="mb-4 text-sm text-red-400" role="alert">{error}</p>}
 
         <div className="flex gap-2">
           <button

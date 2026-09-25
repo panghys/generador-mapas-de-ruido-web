@@ -47,6 +47,21 @@ export const Street = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    nivelRuidoCalculado: {
+      type: DataTypes.FLOAT,
+      allowNull: true,
+      comment: 'Nivel de ruido calculado en dB(A)'
+    },
+    velocidadPromedio: {
+      type: DataTypes.INTEGER,
+      defaultValue: 50,
+      comment: 'Velocidad promedio en km/h'
+    },
+    tipoSuperficie: {
+      type: DataTypes.STRING,
+      defaultValue: 'asfalto_no_ranurado',
+      comment: 'Tipo de carpeta según DIN 18005'
+    }
   },
   {
     timestamps: false,

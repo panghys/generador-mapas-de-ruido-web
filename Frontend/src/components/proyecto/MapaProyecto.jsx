@@ -9,7 +9,7 @@ import EstadoBadge from "./EstadoBadge";
 import clientAxios from "../config/clienteAxios";
 import CalleModal from "./CalleModal";
 import InstruccionesMapaModal from "./InstruccionesMapaModal";
-import { NIVELES_RUIDO } from "./nivelesRuido";
+import { NIVELES_RUIDO, obtenerColorRuido } from "./nivelesRuido";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import "@geoman-io/leaflet-geoman-free";
 
@@ -121,6 +121,7 @@ const MapaProyecto = () => {
   const [cargandoCalles, setCargandoCalles] = useState(false);
 
   const [calles, setCalles] = useState([]);
+  const [errorCalles, setErrorCalles] = useState("");
   const [marcadores, setMarcadores] = useState([]);
 
   const [delimitando, setDelimitando] = useState(null);
@@ -132,6 +133,7 @@ const MapaProyecto = () => {
 
   const [modalCalleAbierto, setModalCalleAbierto] = useState(false);
   const [modalDatosIniciales, setModalDatosIniciales] = useState(null);
+  const [errorGuardarCalle, setErrorGuardarCalle] = useState("");
 
   const [editandoZona, setEditandoZona] = useState(false);
 
@@ -172,11 +174,9 @@ const MapaProyecto = () => {
 
     const vistaInicial = proyecto.zona ? null : VISTA_INICIAL_SIN_ZONA;
 
-    const rendererConTolerancia = L.canvas({ tolerance: 8 });
-
     const map = vistaInicial
-      ? L.map(mapRef.current, { renderer: rendererConTolerancia }).setView(vistaInicial.centro, vistaInicial.zoom)
-      : L.map(mapRef.current, { renderer: rendererConTolerancia }).setView([0, 0], 2);
+      ? L.map(mapRef.current).setView(vistaInicial.centro, vistaInicial.zoom)
+      : L.map(mapRef.current).setView([0, 0], 2);
 
     mapInstance.current = map;
 
@@ -196,7 +196,9 @@ const MapaProyecto = () => {
       .then(({ data }) => {
         const cargadas = data.data.map((calleDb) => {
           const layer = L.polyline(lineStringALatLngs(calleDb.trazo_calle), {
-            color: calleDb.color_asignado || "#FF0000",
+            color: calleDb.nivelRuidoCalculado > 0
+              ? obtenerColorRuido(calleDb.nivelRuidoCalculado).color
+              : calleDb.color_asignado || "#FF0000",
             weight: 5,
           }).addTo(map);
 
@@ -206,8 +208,13 @@ const MapaProyecto = () => {
         });
 
         setCalles(cargadas);
+        setErrorCalles("");
       })
-      .catch(() => {})
+      .catch((error) => {
+        setErrorCalles(
+          error.response?.data?.error || "No se pudieron cargar las calles del proyecto."
+        );
+      })
       .finally(() => setCargandoCalles(false));
 
     return () => {
@@ -402,6 +409,7 @@ const MapaProyecto = () => {
   };
 
   const guardarCalleDesdeModal = async (datos) => {
+    setErrorGuardarCalle("");
     try {
       if (modalDatosIniciales?.id) {
         const { data } = await clientAxios.put(
@@ -409,7 +417,11 @@ const MapaProyecto = () => {
           datos
         );
 
-        modalDatosIniciales.layer.setStyle({ color: datos.color_asignado, weight: 5 });
+        const nivelRuido = data.data.nivelRuidoCalculado;
+        modalDatosIniciales.layer.setStyle({
+          color: nivelRuido > 0 ? obtenerColorRuido(nivelRuido).color : datos.color_asignado,
+          weight: 5,
+        });
         quitarResaltadoCalle();
 
         setCalles((actuales) =>
@@ -423,7 +435,13 @@ const MapaProyecto = () => {
           trazo_calle: trazoPendiente.trazoGeoJSON,
         });
 
-        layer.setStyle({ color: datos.color_asignado, weight: 5, dashArray: null, opacity: 1 });
+        const nivelRuido = data.data.nivelRuidoCalculado;
+        layer.setStyle({
+          color: nivelRuido > 0 ? obtenerColorRuido(nivelRuido).color : datos.color_asignado,
+          weight: 5,
+          dashArray: null,
+          opacity: 1,
+        });
 
         const nuevaCalle = { ...data.data, layer };
         layer.on("click", () => abrirModalParaEditarPorId(nuevaCalle.id));
@@ -435,7 +453,9 @@ const MapaProyecto = () => {
       setModalCalleAbierto(false);
       setModalDatosIniciales(null);
     } catch (err) {
-      // se deja el modal abierto para que el usuario reintente
+      setErrorGuardarCalle(
+        err.response?.data?.error || "No se pudo guardar la calle. Verifica los datos e intenta nuevamente."
+      );
     }
   };
 
@@ -454,6 +474,7 @@ const MapaProyecto = () => {
   const eliminarCalleDesdeModal = async () => {
     if (!modalDatosIniciales?.id) return;
 
+    setErrorGuardarCalle("");
     try {
       await clientAxios.delete(`/proyectos/${proyectoId}/calles/${modalDatosIniciales.id}`);
       mapInstance.current.removeLayer(modalDatosIniciales.layer);
@@ -462,7 +483,7 @@ const MapaProyecto = () => {
       setModalCalleAbierto(false);
       setModalDatosIniciales(null);
     } catch (err) {
-      // no se pudo eliminar; el modal se deja abierto
+      setErrorGuardarCalle(err.response?.data?.error || "No se pudo eliminar la calle.");
     }
   };
 
@@ -650,6 +671,7 @@ const MapaProyecto = () => {
               <div ref={mapRef} className="h-[520px] w-full" />
             </section>
 
+            {errorCalles && <p className="mt-4 text-sm text-red-400">{errorCalles}</p>}
             {cargandoCalles && (
               <p className="mt-4 text-sm text-dash-text-soft">Cargando calles guardadas...</p>
             )}
@@ -811,6 +833,7 @@ const MapaProyecto = () => {
       <CalleModal
         abierto={modalCalleAbierto}
         datosIniciales={modalDatosIniciales}
+        error={errorGuardarCalle}
         onGuardar={guardarCalleDesdeModal}
         onEliminar={eliminarCalleDesdeModal}
         onCancelar={cancelarModalCalle}

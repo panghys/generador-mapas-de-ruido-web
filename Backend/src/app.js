@@ -9,6 +9,7 @@ dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
 dotenv.config();
 
 const app = express();
+app.set("etag", false);
 
 import userRoutes from "./routes/users.routes.js";
 import authRoutes from "./routes/auth.routes.js";
@@ -16,6 +17,10 @@ import projectRoutes from "./routes/project.routes.js";
 
 app.use(morgan("dev"));
 app.use(express.json());
+app.use("/api", (req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
 
 // Lista blanca que permite tanto producción como tus pruebas en local
 const allowedOrigins = [
