@@ -17,11 +17,16 @@ const pasos = [
       "Haz clic sobre cualquier calle ya trazada para abrir sus datos, modificarlos o eliminarla.",
   },
   {
-    titulo: "4. Añadir marcadores",
+    titulo: "4. Generar el mapa de ruido",
+    texto:
+      "Ingresa en cada calle el tráfico contado durante 15 minutos. El mapa colorea las calles y muestra la superficie estimada; puedes ocultar esta capa desde la leyenda.",
+  },
+  {
+    titulo: "5. Añadir marcadores",
     texto: "Haz clic en \"Añadir marcador\" y luego en el mapa para colocar un punto de referencia.",
   },
   {
-    titulo: "5. Buscar una ubicación",
+    titulo: "6. Buscar una ubicación",
     texto:
       "Escribe una ciudad, dirección o coordenadas (ej: -39.8142, -73.2459) en el buscador y presiona Enter o \"Buscar\".",
   },

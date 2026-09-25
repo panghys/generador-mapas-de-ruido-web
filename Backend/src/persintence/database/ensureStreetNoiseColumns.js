@@ -21,6 +21,11 @@ export async function ensureStreetNoiseColumns() {
       allowNull: false,
       defaultValue: "asfalto_no_ranurado",
     },
+    periodoConteo: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "15_minutos",
+    },
   };
 
   for (const [name, definition] of Object.entries(noiseColumns)) {

@@ -1,20 +1,21 @@
 export function calcularRuidoLocal(
   datosTrafico,
   velocidad = 50,
-  tipoSuperficie = "asfalto_no_ranurado"
+  tipoSuperficie = "asfalto_no_ranurado",
+  periodoConteo = "15_minutos"
 ) {
   const livianos = Number(datosTrafico.pequeños) || 0;
   const medianos = Number(datosTrafico.medianos) || 0;
   const pesados = Number(datosTrafico.grandes) || 0;
-  const total = livianos + medianos + pesados;
+  const factorHorario = periodoConteo === "15_minutos" ? 4 : 1;
+  const flujoHorario = (livianos + medianos + pesados) * factorHorario;
 
-  if (total === 0) return null;
+  if (flujoHorario === 0) return null;
 
-  const proporcionPesados = (medianos + pesados) / total;
-  const ponderacion =
-    proporcionPesados * 10 ** (75 / 10) +
-    (1 - proporcionPesados) * 10 ** (70 / 10);
-  const nivelFuente = 37.3 + 10 * Math.log10(ponderacion);
+  const proporcionPesados =
+    ((medianos + pesados) / (livianos + medianos + pesados)) * 100;
+  const nivelFuente =
+    37.3 + 10 * Math.log10(flujoHorario * (1 + 0.082 * proporcionPesados));
   const velocidadValida = Number(velocidad) > 0 ? Number(velocidad) : 50;
   const correccionesSuperficie = {
     asfalto_estandar: { 30: 0, 40: 0, 50: 0, 60: 0 },
@@ -35,10 +36,7 @@ export function calcularRuidoLocal(
   const correccionVelocidad =
     velocidadValida === 50 ? 0 : 10 * Math.log10(velocidadValida / 50);
   const nivel =
-    nivelFuente +
-    10 * Math.log10(total) +
-    correccionVelocidad +
-    correcciones[velocidadBase];
+    nivelFuente + correccionVelocidad + correcciones[velocidadBase];
 
   return Math.round(nivel * 10) / 10;
 }

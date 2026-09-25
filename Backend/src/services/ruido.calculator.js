@@ -16,6 +16,12 @@ export function validarParametrosRuido(params) {
   if (velocidad !== undefined && (isNaN(velocidad) || Number(velocidad) <= 0)) {
     errores.push("La velocidad debe ser un número mayor a 0 km/h.");
   }
+  if (
+    params.periodoConteo !== undefined &&
+    !["15_minutos", "por_hora"].includes(params.periodoConteo)
+  ) {
+    errores.push("El período del conteo debe ser 15_minutos o por_hora.");
+  }
 
   // Validar valores de tráfico no negativos
   const camposTrafico = [
@@ -44,42 +50,43 @@ export function validarParametrosRuido(params) {
  * @param {number} distancia - metros de la fuente (default 25m)
  * @returns {number} Nivel de ruido en dB(A)
  */
-export function calcularRuidoRLS90(datosTrafico, velocidad = 50, tipoSuperf = 'asfalto_no_ranurado', distancia = 25) {
+export function calcularRuidoRLS90(
+  datosTrafico,
+  velocidad = 50,
+  tipoSuperf = "asfalto_no_ranurado",
+  distancia = 25,
+  periodoConteo = "15_minutos"
+) {
   // Soportar tanto formato español tradicional como las columnas de base de datos
   const livianos = Number(datosTrafico?.pequeños ?? datosTrafico?.vehiculos_livianos ?? datosTrafico?.trafico_vehiculos_pequenos ?? 0);
   const medianos = Number(datosTrafico?.medianos ?? datosTrafico?.trafico_vehiculos_medianos ?? 0);
   const pesadosCount = Number(datosTrafico?.grandes ?? datosTrafico?.vehiculos_pesados ?? datosTrafico?.trafico_vehiculos_grandes ?? 0);
   const motos = Number(datosTrafico?.motos ?? 0);
 
-  // 1. Calcular flujo total (M)
-  const M = livianos + medianos + pesadosCount + motos;
-  if (M <= 0) return 0; // Sin tráfico, sin emisión base
+  // RLS-90 requiere el flujo horario de vehículos.
+  const factorHorario = periodoConteo === "15_minutos" ? 4 : 1;
+  const M = (livianos + medianos + pesadosCount + motos) * factorHorario;
+  if (M <= 0) return 0;
 
-  // 2. Calcular proporción de vehículos pesados (p)
+  // 2. Calcular proporción de vehículos pesados en porcentaje.
   const pesados = medianos + pesadosCount;
-  const p = Math.min(1, Math.max(0, pesados / M));
+  const p = Math.min(100, Math.max(0, (pesados / (M / factorHorario)) * 100));
 
-  // 3. Calcular Ls (nivel de fuente según RLS-90)
-  const Lsl = 70; // Vehículos ligeros
-  const Lsw = 75; // Vehículos pesados
-  const ponderacion = p * Math.pow(10, Lsw / 10) + (1 - p) * Math.pow(10, Lsl / 10);
-  const Ls = 37.3 + 10 * Math.log10(ponderacion > 0 ? ponderacion : 1);
+  // 3. Nivel de emisión de referencia a 25 m según el flujo y la fracción pesada.
+  const Lm25 = 37.3 + 10 * Math.log10(M * (1 + 0.082 * p));
 
-  // 4. Calcular Lm(25) - nivel a 25 metros
-  const Lm25 = Ls + 10 * Math.log10(M);
-
-  // 5. Corrección por velocidad (DV)
+  // 4. Corrección por velocidad (DV)
   const velNum = Number(velocidad) > 0 ? Number(velocidad) : 50;
   const DV = velNum !== 50 ? 10 * Math.log10(velNum / 50) : 0;
 
-  // 6. Corrección por tipo de superficie (DStrO)
+  // 5. Corrección por tipo de superficie (DStrO)
   const DStrO = obtenerCorreccionSuperf(tipoSuperf, velNum);
 
-  // 7. Corrección por distancia si es distinta a 25m (atenuación geométrica básica)
+  // 6. Corrección por distancia si es distinta a 25 m.
   const distNum = Number(distancia) > 0 ? Number(distancia) : 25;
   const DS = distNum !== 25 ? -10 * Math.log10(distNum / 25) : 0;
 
-  // 8. Cálculo final
+  // 7. Cálculo final
   const Lr = Lm25 + DV + DStrO + DS;
 
   return Math.round(Lr * 10) / 10; // Redondear a 1 decimal

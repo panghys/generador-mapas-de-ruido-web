@@ -24,6 +24,7 @@ const CalleModal = ({ abierto, datosIniciales, onGuardar, onEliminar, onCancelar
   const [pequenos, setPequenos] = useState(0);
   const [velocidad, setVelocidad] = useState(50);
   const [tipoSuperficie, setTipoSuperficie] = useState('asfalto_no_ranurado');
+  const [periodoConteo, setPeriodoConteo] = useState("15_minutos");
   const [nivelRuidoEstimado, setNivelRuidoEstimado] = useState(null);
 
   const esEdicion = Boolean(datosIniciales?.id);
@@ -32,10 +33,11 @@ const CalleModal = ({ abierto, datosIniciales, onGuardar, onEliminar, onCancelar
     const nivel = calcularRuidoLocal(
       { pequeños: pequenos, medianos, grandes },
       velocidad,
-      tipoSuperficie
+      tipoSuperficie,
+      periodoConteo
     );
     setNivelRuidoEstimado(nivel);
-  }, [pequenos, medianos, grandes, velocidad, tipoSuperficie]);
+  }, [pequenos, medianos, grandes, velocidad, tipoSuperficie, periodoConteo]);
 
   useEffect(() => {
     if (!abierto) return;
@@ -48,6 +50,7 @@ const CalleModal = ({ abierto, datosIniciales, onGuardar, onEliminar, onCancelar
     setPequenos(datosIniciales?.trafico_vehiculos_pequenos ?? 0);
     setVelocidad(datosIniciales?.velocidadPromedio ?? 50);
     setTipoSuperficie(datosIniciales?.tipoSuperficie || "asfalto_no_ranurado");
+    setPeriodoConteo(datosIniciales?.periodoConteo || "15_minutos");
   }, [abierto, datosIniciales]);
 
   if (!abierto) return null;
@@ -67,6 +70,7 @@ const CalleModal = ({ abierto, datosIniciales, onGuardar, onEliminar, onCancelar
       trafico_vehiculos_pequenos: pequenos,
       velocidadPromedio: velocidad,
       tipoSuperficie,
+      periodoConteo,
     });
   };
 
@@ -124,7 +128,9 @@ const CalleModal = ({ abierto, datosIniciales, onGuardar, onEliminar, onCancelar
           ))}
         </div>
 
-        <p className="mb-2 text-xs text-dash-text-soft">Tráfico vehicular</p>
+        <p className="mb-2 text-xs text-dash-text-soft">
+          Tráfico vehicular contado en {periodoConteo === "15_minutos" ? "15 minutos" : "una hora"}
+        </p>
         <div className="mb-5 flex flex-col gap-2">
           <label className="flex items-center justify-between text-sm">
             <span>Vehículos livianos / pequeños</span>
@@ -190,7 +196,7 @@ const CalleModal = ({ abierto, datosIniciales, onGuardar, onEliminar, onCancelar
         <p className="mb-5 text-sm text-dash-text-soft" aria-live="polite">
           Nivel de ruido estimado:{" "}
           <strong className="text-dash-text">
-            {nivelRuidoEstimado === null ? "Sin tráfico" : `${nivelRuidoEstimado} dB(A)`}
+            {nivelRuidoEstimado === null ? "Sin tráfico" : `${nivelRuidoEstimado} dB(A) a 25 m`}
           </strong>
         </p>
 

@@ -41,6 +41,7 @@ export async function createStreet(req, res) {
     color_asignado,
     velocidadPromedio = 50,
     tipoSuperficie = "asfalto_no_ranurado",
+    periodoConteo = "15_minutos",
   } = req.body;
 
   if (!trazo_calle) {
@@ -52,6 +53,7 @@ export async function createStreet(req, res) {
     medianos: trafico_vehiculos_medianos ?? 0,
     grandes: trafico_vehiculos_grandes ?? 0,
     velocidadPromedio,
+    periodoConteo,
   };
   const validacion = validarParametrosRuido(parametrosRuido);
   if (!validacion.esValido) {
@@ -61,7 +63,9 @@ export async function createStreet(req, res) {
   const nivelRuido = calcularRuidoRLS90(
     parametrosRuido,
     velocidadPromedio,
-    tipoSuperficie
+    tipoSuperficie,
+    25,
+    periodoConteo
   );
 
   const street = {
@@ -75,6 +79,7 @@ export async function createStreet(req, res) {
     color_asignado,
     velocidadPromedio,
     tipoSuperficie,
+    periodoConteo,
     nivelRuidoCalculado: nivelRuido,
   };
 
@@ -107,6 +112,7 @@ export async function updateStreet(req, res) {
     color_asignado,
     velocidadPromedio = calleActual.velocidadPromedio ?? 50,
     tipoSuperficie = calleActual.tipoSuperficie || "asfalto_no_ranurado",
+    periodoConteo = calleActual.periodoConteo || "15_minutos",
   } = req.body;
 
   const parametrosRuido = {
@@ -114,6 +120,7 @@ export async function updateStreet(req, res) {
     medianos: trafico_vehiculos_medianos ?? calleActual.trafico_vehiculos_medianos ?? 0,
     grandes: trafico_vehiculos_grandes ?? calleActual.trafico_vehiculos_grandes ?? 0,
     velocidadPromedio,
+    periodoConteo,
   };
   const validacion = validarParametrosRuido(parametrosRuido);
   if (!validacion.esValido) {
@@ -131,10 +138,13 @@ export async function updateStreet(req, res) {
   if (color_asignado !== undefined) cambios.color_asignado = color_asignado;
   cambios.velocidadPromedio = Number(velocidadPromedio);
   cambios.tipoSuperficie = tipoSuperficie;
+  cambios.periodoConteo = periodoConteo;
   cambios.nivelRuidoCalculado = calcularRuidoRLS90(
     parametrosRuido,
     velocidadPromedio,
-    tipoSuperficie
+    tipoSuperficie,
+    25,
+    periodoConteo
   );
 
   updateStreet_(id, proyectoId, cambios).then(

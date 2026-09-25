@@ -10,6 +10,8 @@ import clientAxios from "../config/clienteAxios";
 import CalleModal from "./CalleModal";
 import InstruccionesMapaModal from "./InstruccionesMapaModal";
 import { NIVELES_RUIDO, obtenerColorRuido } from "./nivelesRuido";
+import { crearCeldasMapaRuido } from "./ruidoHeatmap";
+import { calcularRuidoLocal } from "./ruidoLocal";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import "@geoman-io/leaflet-geoman-free";
 
@@ -134,6 +136,7 @@ const MapaProyecto = () => {
   const [modalCalleAbierto, setModalCalleAbierto] = useState(false);
   const [modalDatosIniciales, setModalDatosIniciales] = useState(null);
   const [errorGuardarCalle, setErrorGuardarCalle] = useState("");
+  const [mostrarSuperficieRuido, setMostrarSuperficieRuido] = useState(true);
 
   const [editandoZona, setEditandoZona] = useState(false);
 
@@ -144,12 +147,20 @@ const MapaProyecto = () => {
   const mapInstance = useRef(null);
   const zonaLayerRef = useRef(null);
   const resaltadoLayerRef = useRef(null);
+  const superficieRuidoRef = useRef(null);
 
   const modoOcupadoRef = useRef(false);
   const callesRef = useRef([]);
 
   const modoOcupado =
     delimitando !== null || editandoZona || modalCalleAbierto || trazoPendiente !== null;
+  const hayTraficoRegistrado = calles.some(
+    (calle) =>
+      Number(calle.trafico_vehiculos_pequenos) +
+        Number(calle.trafico_vehiculos_medianos) +
+        Number(calle.trafico_vehiculos_grandes) >
+      0
+  );
 
   useEffect(() => {
     modoOcupadoRef.current = modoOcupado;
@@ -195,14 +206,24 @@ const MapaProyecto = () => {
       .get(`/proyectos/${proyectoId}/calles`)
       .then(({ data }) => {
         const cargadas = data.data.map((calleDb) => {
+          const nivelRuido = calcularRuidoLocal(
+            {
+              pequeños: calleDb.trafico_vehiculos_pequenos,
+              medianos: calleDb.trafico_vehiculos_medianos,
+              grandes: calleDb.trafico_vehiculos_grandes,
+            },
+            calleDb.velocidadPromedio ?? 50,
+            calleDb.tipoSuperficie || "asfalto_no_ranurado",
+            calleDb.periodoConteo || "15_minutos"
+          );
           const layer = L.polyline(lineStringALatLngs(calleDb.trazo_calle), {
-            color: calleDb.nivelRuidoCalculado > 0
-              ? obtenerColorRuido(calleDb.nivelRuidoCalculado).color
+            color: nivelRuido > 0
+              ? obtenerColorRuido(nivelRuido).color
               : calleDb.color_asignado || "#FF0000",
             weight: 5,
           }).addTo(map);
 
-          const calleObj = { ...calleDb, layer };
+          const calleObj = { ...calleDb, nivelRuidoCalculado: nivelRuido, layer };
           layer.on("click", () => abrirModalParaEditarPorId(calleObj.id));
           return calleObj;
         });
@@ -224,6 +245,44 @@ const MapaProyecto = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proyectoId]);
+
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map) return;
+
+    if (superficieRuidoRef.current) {
+      map.removeLayer(superficieRuidoRef.current);
+      superficieRuidoRef.current = null;
+    }
+    if (!mostrarSuperficieRuido || !proyecto?.zona || calles.length === 0) return;
+
+    const panelRuido = map.getPane("superficieRuido") || map.createPane("superficieRuido");
+    panelRuido.style.zIndex = "350";
+    const celdas = crearCeldasMapaRuido(calles, proyecto.zona);
+    if (celdas.length === 0) return;
+
+    const capas = L.featureGroup(
+      celdas.map((feature) =>
+        L.geoJSON(feature, {
+          pane: "superficieRuido",
+          interactive: false,
+          style: ({ properties }) => ({
+            color: properties.color,
+            fillColor: properties.color,
+            fillOpacity: 0.42,
+            opacity: 0,
+            weight: 0,
+          }),
+        })
+      )
+    ).addTo(map);
+    superficieRuidoRef.current = capas;
+
+    return () => {
+      if (map.hasLayer(capas)) map.removeLayer(capas);
+      if (superficieRuidoRef.current === capas) superficieRuidoRef.current = null;
+    };
+  }, [calles, proyecto?.zona, mostrarSuperficieRuido]);
 
   useEffect(() => {
     const map = mapInstance.current;
@@ -817,6 +876,17 @@ const MapaProyecto = () => {
                   </div>
                 ))}
               </div>
+              <p className="mt-3 text-xs text-dash-text-soft">
+                Se muestran celdas desde 45 dB(A). La propagación no considera edificios ni terreno.
+              </p>
+              <button
+                type="button"
+                onClick={() => setMostrarSuperficieRuido((visible) => !visible)}
+                disabled={!proyecto.zona || !hayTraficoRegistrado}
+                className="mt-3 w-full border border-dash-border px-2 py-2 text-sm font-semibold text-dash-text hover:bg-[#1d2c2f] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {mostrarSuperficieRuido ? "Ocultar superficie" : "Mostrar superficie"}
+              </button>
             </div>
 
             <button
