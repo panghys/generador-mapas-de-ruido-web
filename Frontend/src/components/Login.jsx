@@ -23,19 +23,11 @@ const Login = () => {
   const [nombre, setNombre] = useState("");
   const [mail, setMail] = useState("");
   const [contrasena, setContrasena] = useState("");
-  const [repetirContrasena, setRepetirContrasena] = useState("");
-  const [mostrarContrasena, setMostrarContrasena] = useState(false);
-  const [mostrarRepetirContrasena, setMostrarRepetirContrasena] = useState(false);
   const [error, setError] = useState(null);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError(null);
-
-    if (modoRegistro && contrasena !== repetirContrasena) {
-      setError("Las contraseñas no coinciden.");
-      return;
-    }
 
     try {
       const baseUrl = obtenerBaseUrl();
@@ -82,31 +74,6 @@ const Login = () => {
     setError(null);
   };
 
-  const IconoOjo = ({ abierto }) => (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      {abierto ? (
-        <>
-          <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
-          <circle cx="12" cy="12" r="3" />
-        </>
-      ) : (
-        <>
-          <path d="M3 3l18 18" />
-          <path d="M10.58 10.58A2 2 0 0 0 13.42 13.42" />
-          <path d="M9.88 5.08A10.94 10.94 0 0 1 12 5c6.5 0 10 7 10 7a16.68 16.68 0 0 1-3.7 5.12" />
-          <path d="M6.61 6.61A15.74 15.74 0 0 0 2 12s3.5 7 10 7a11.12 11.12 0 0 0 5.39-1.61" />
-        </>
-      )}
-    </svg>
-  );
-
   const handleSuccess = async (credentialResponse) => {
     try {
       // Si estamos en local, enviamos la petición a nuestro backend local (puerto 4003)
@@ -143,31 +110,76 @@ const Login = () => {
   };
 
   return (
-    <main className="min-h-screen bg-[#050505] px-0 py-0 text-white">
-      <div className="flex min-h-screen w-full">
-        {/* --- PANEL IZQUIERDO: botones de acceso --- */}
-        <aside className="flex w-full max-w-[420px] flex-col justify-center border-r border-zinc-700/80 bg-black px-8 py-10 sm:px-10 lg:px-12">
-          <div className="mb-8 text-left">
-            <p className="text-xs font-semibold uppercase tracking-[0.38em] text-[#007EFF]">
+    <main className="relative min-h-screen overflow-hidden bg-dash-bg px-6 py-12 font-sans text-dash-text">
+      {/* Fondo animado en WebGL — capa a pantalla completa, detrás del recuadro de login */}
+      <div className="absolute inset-0 z-0">
+        <GradientWaves
+          horizonColor="#00dfc3"
+          waveColor="#000000"
+          crestColor="#e8e8e8"
+          speed={0.55}
+          amplitude={2.5}
+          waveScale={0.65}
+          swell={30}
+          turbulence={20}
+          tilt={1.15}
+          zoom={1.1}
+          height={5}
+          fogDepth={16}
+          detail="medium"
+          brightness={0.85}
+          opacity={0.9}
+          mouseInteraction
+          parallaxStrength={0.35}
+          grain
+          grainIntensity={0.04}
+        />
+      </div>
+
+      <div className="relative z-10 mx-auto grid max-w-5xl overflow-hidden border border-dash-border bg-dash-surface md:grid-cols-[1.05fr_0.95fr]">
+
+        <section className="hidden flex-col justify-between bg-dash-accent p-10 text-dash-bg md:flex">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em]">
               NoiseMap
             </p>
+
+            <h1 className="mt-20 max-w-sm text-4xl font-semibold leading-tight">
+              Mapas de ruido para decisiones más claras.
+            </h1>
           </div>
 
-          <div className="flex w-full max-w-[280px] flex-col items-center justify-center space-y-3 self-center">
-            <div className="flex w-full justify-center">
+          <p className="max-w-sm text-sm leading-6 opacity-75">
+            Organiza tus proyectos, delimita zonas de medición y prepara tus
+            próximos análisis.
+          </p>
+        </section>
+
+        <section className="p-7 sm:p-10">
+
+          <p className="mb-2 text-sm font-medium uppercase tracking-[0.18em] text-dash-accent">
+            {modoRegistro ? "Crear cuenta" : "Bienvenido"}
+          </p>
+
+          <h2 className="text-3xl font-semibold">
+            {modoRegistro ? "Comienza tu espacio" : "Inicia sesión"}
+          </h2>
+
+          <p className="mt-2 text-sm text-dash-text-soft">
+            Usa una cuenta externa o entra con tu correo y contraseña.
+          </p>
+
+          <div className="mt-7 space-y-3">
+
+            <div className="flex justify-center rounded border border-dash-border bg-white p-3">
               <GoogleLogin
                 onSuccess={handleSuccess}
                 onError={() =>
                   setError("No fue posible iniciar sesión con Google.")
                 }
-                theme="filled_black"
-                text="continue_with"
-                shape="pill"
-                size="large"
               />
             </div>
 
-            {/*
             <button
               type="button"
               onClick={() =>
@@ -175,27 +187,27 @@ const Login = () => {
                   "La conexión con Outlook se habilitará en una próxima versión."
                 )
               }
-              className="inline-flex w-full items-center justify-center rounded-xl border border-white/10 bg-[#171717] px-4 py-[14px] text-sm font-medium text-white transition-colors duration-200 hover:border-[#67f0d4] hover:text-white focus:outline-none"
+              className="w-full border border-dash-border px-4 py-3 text-sm font-medium text-dash-text transition-colors hover:border-dash-accent"
             >
               Continuar con Outlook
             </button>
-            */}
+
           </div>
 
-          <div className="my-7 flex items-center gap-3 text-[10px] font-medium uppercase tracking-[0.28em] text-zinc-500">
-            <span className="h-px flex-1 bg-white/30" />
-            o 
-            <span className="h-px flex-1 bg-white/30" />
+          <div className="my-7 flex items-center gap-3 text-xs text-dash-text-soft">
+            <span className="h-px flex-1 bg-dash-border" />
+            o con correo
+            <span className="h-px flex-1 bg-dash-border" />
           </div>
 
-          {/* --- FORMULARIO: login o registro según el modo --- */}
           <form onSubmit={handleSubmit} className="space-y-4">
+
             {modoRegistro && (
               <input
                 value={nombre}
                 onChange={(event) => setNombre(event.target.value)}
                 placeholder="Nombre"
-                className="w-full rounded-xl border border-white/10 bg-[#171717] px-4 py-3 text-sm text-white placeholder:text-zinc-500 outline-none transition focus:border-[#67f0d4] focus:ring-2 focus:ring-[#67f0d4]/20"
+                className="w-full border border-dash-border bg-transparent px-3 py-3 text-sm outline-none focus:border-dash-accent"
               />
             )}
 
@@ -204,96 +216,43 @@ const Login = () => {
               value={mail}
               onChange={(event) => setMail(event.target.value)}
               placeholder="Correo electrónico"
-              className="w-full rounded-xl border border-white/10 bg-[#171717] px-4 py-3 text-sm text-white placeholder:text-zinc-500 outline-none transition focus:border-[#67f0d4] focus:ring-2 focus:ring-[#67f0d4]/20"
+              className="w-full border border-dash-border bg-transparent px-3 py-3 text-sm outline-none focus:border-dash-accent"
             />
 
-            <div className="relative">
-              <input
-                type={mostrarContrasena ? "text" : "password"}
-                value={contrasena}
-                onChange={(event) => setContrasena(event.target.value)}
-                placeholder="Contraseña"
-                className="w-full rounded-xl border border-white/10 bg-[#171717] px-4 py-3 pr-11 text-sm text-white placeholder:text-zinc-500 outline-none transition focus:border-[#67f0d4] focus:ring-2 focus:ring-[#67f0d4]/20"
-              />
-              <button
-                type="button"
-                onClick={() => setMostrarContrasena((actual) => !actual)}
-                className="absolute inset-y-0 right-3 flex items-center text-zinc-400 transition hover:text-zinc-200"
-                aria-label={mostrarContrasena ? "Ocultar contraseña" : "Mostrar contraseña"}
-              >
-                <IconoOjo abierto={mostrarContrasena} />
-              </button>
-            </div>
-
-            {modoRegistro && (
-              <div className="relative">
-                <input
-                  type={mostrarRepetirContrasena ? "text" : "password"}
-                  value={repetirContrasena}
-                  onChange={(event) => setRepetirContrasena(event.target.value)}
-                  placeholder="Repetir contraseña"
-                  className="w-full rounded-xl border border-white/10 bg-[#171717] px-4 py-3 pr-11 text-sm text-white placeholder:text-zinc-500 outline-none transition focus:border-[#67f0d4] focus:ring-2 focus:ring-[#67f0d4]/20"
-                />
-                <button
-                  type="button"
-                  onClick={() => setMostrarRepetirContrasena((actual) => !actual)}
-                  className="absolute inset-y-0 right-3 flex items-center text-zinc-400 transition hover:text-zinc-200"
-                  aria-label={mostrarRepetirContrasena ? "Ocultar contraseña" : "Mostrar contraseña"}
-                >
-                  <IconoOjo abierto={mostrarRepetirContrasena} />
-                </button>
-              </div>
-            )}
+            <input
+              type="password"
+              value={contrasena}
+              onChange={(event) => setContrasena(event.target.value)}
+              placeholder="Contraseña"
+              className="w-full border border-dash-border bg-transparent px-3 py-3 text-sm outline-none focus:border-dash-accent"
+            />
 
             <button
               type="submit"
-              className="w-full rounded-xl bg-[#01296D] px-4 py-3 text-sm font-semibold text-white transition-opacity duration-200 hover:opacity-90"
+              className="w-full bg-dash-accent px-4 py-3 text-sm font-semibold text-dash-bg transition-opacity hover:opacity-90"
             >
               {modoRegistro ? "Crear cuenta" : "Iniciar sesión"}
             </button>
+
           </form>
 
           {error && (
-            <p className="mt-4 text-sm text-red-400">{error}</p>
+            <p className="mt-4 text-sm text-red-400">
+              {error}
+            </p>
           )}
 
           <button
             type="button"
             onClick={cambiarModo}
-            className="mt-6 block w-full text-center text-sm text-[#007EFF] transition hover:underline"
+            className="mt-6 text-sm text-dash-accent hover:underline"
           >
             {modoRegistro
               ? "Ya tengo una cuenta"
               : "No tengo una cuenta, crear una"}
           </button>
-        </aside>
 
-        {/* --- PANEL DERECHO: fondo visual, sin contenedor grande --- */}
-        <div className="relative hidden flex-1 overflow-hidden bg-black lg:block">
-          <div className="relative flex h-full items-center justify-center px-12">
-            <div className="max-w-lg text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.42em] text-[#007EFF]">
-                NoiseMap
-              </p>
-              <h1 className="mt-8 text-4xl font-semibold leading-tight text-white">
-                Mapas de ruido para decisiones más claras.
-              </h1>
-
-              <div className="mt-8 flex justify-center">
-                <img
-                  src="/icono.png"
-                  alt="Icono de NoiseMap"
-                  className="h-80 w-80 object-contain" /* Ajusta h-20 w-20 para cambiar el tamaño */
-                />
-              </div>
-
-              {/* <p className="mt-5 text-sm leading-6 text-zinc-300">
-                Organiza tus proyectos, delimita zonas de medición y prepara
-                tus próximos análisis con una vista clara y profesional.
-              </p>*/}
-            </div>
-          </div>
-        </div>
+        </section>
       </div>
     </main>
   );
