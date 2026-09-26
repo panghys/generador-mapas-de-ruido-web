@@ -15,7 +15,14 @@ const colores = [
   "#FFFFFF",
 ];
 
-const CalleModal = ({ abierto, datosIniciales, onGuardar, onEliminar, onCancelar, error }) => {
+const CalleModal = ({
+  abierto,
+  datosIniciales,
+  onGuardar,
+  onEliminar,
+  onCancelar,
+  error,
+}) => {
   const [nombreCalle, setNombreCalle] = useState("");
   const [tipoCalle, setTipoCalle] = useState(tiposCalle[0]);
   const [colorCalle, setColorCalle] = useState("#FF0000");
@@ -96,7 +103,6 @@ const CalleModal = ({ abierto, datosIniciales, onGuardar, onEliminar, onCancelar
             className="w-full border border-dash-border bg-[#10191b] px-3 py-2 text-sm text-white outline-none focus:border-dash-accent"
           />
         </label>
-
         <label className="mb-3 block text-sm">
           <span className="mb-1 block text-xs text-dash-text-soft">Tipo de calle</span>
           <select

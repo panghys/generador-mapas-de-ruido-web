@@ -1,169 +1,125 @@
-import { NIVELES_RUIDO, obtenerColorRuido } from "./nivelesRuido.js";
+import buffer from "@turf/buffer";
+import intersect from "@turf/intersect";
+import { featureCollection, lineString, polygon } from "@turf/helpers";
+import { NIVELES_RUIDO } from "./nivelesRuido.js";
 import { calcularRuidoLocal } from "./ruidoLocal.js";
 
+const DISTANCIA_REFERENCIA_METROS = 25;
+const NIVEL_MINIMO_VISIBLE = 40;
+const PASO_GRADIENTE_DB = 1;
 const METROS_POR_GRADO_LATITUD = 110540;
 const METROS_POR_GRADO_LONGITUD = 111320;
-const MAX_CELDAS_RUIDO = 5000;
-const NIVEL_MINIMO_VISIBLE = 45;
 
-const proyectar = ([longitud, latitud], referencia) => [
-  longitud * METROS_POR_GRADO_LONGITUD * referencia.factorLongitud,
-  latitud * METROS_POR_GRADO_LATITUD,
+const coloresGradiente = [
+  { nivel: 40, color: NIVELES_RUIDO[0].color },
+  { nivel: 55, color: NIVELES_RUIDO[1].color },
+  { nivel: 60, color: NIVELES_RUIDO[2].color },
+  { nivel: 65, color: NIVELES_RUIDO[3].color },
+  { nivel: 70, color: NIVELES_RUIDO[4].color },
 ];
 
-const desproyectar = ([x, y], referencia) => [
-  x / (METROS_POR_GRADO_LONGITUD * referencia.factorLongitud),
-  y / METROS_POR_GRADO_LATITUD,
-];
-
-const puntoEnAnillo = ([x, y], puntos) => {
-  let dentro = false;
-
-  for (let actual = 0, anterior = puntos.length - 1; actual < puntos.length; anterior = actual++) {
-    const [x1, y1] = puntos[actual];
-    const [x2, y2] = puntos[anterior];
-    const cruza = (y1 > y) !== (y2 > y) && x < ((x2 - x1) * (y - y1)) / (y2 - y1) + x1;
-    if (cruza) dentro = !dentro;
-  }
-
-  return dentro;
-};
-
-const puntoDentroDeZona = (punto, anillosProyectados) =>
-  Boolean(anillosProyectados.length) &&
-  puntoEnAnillo(punto, anillosProyectados[0]) &&
-  !anillosProyectados.slice(1).some((hueco) => puntoEnAnillo(punto, hueco));
-
-const distanciaAlSegmento = (punto, inicio, fin) => {
-  const dx = fin[0] - inicio[0];
-  const dy = fin[1] - inicio[1];
-  const longitudCuadrada = dx * dx + dy * dy;
-  if (!longitudCuadrada) return Math.hypot(punto[0] - inicio[0], punto[1] - inicio[1]);
-
-  const proporcion = Math.max(
-    0,
-    Math.min(1, ((punto[0] - inicio[0]) * dx + (punto[1] - inicio[1]) * dy) / longitudCuadrada)
-  );
-  return Math.hypot(
-    punto[0] - (inicio[0] + proporcion * dx),
-    punto[1] - (inicio[1] + proporcion * dy)
-  );
-};
-
-const fuentesDeRuido = (calles, referencia) =>
-  calles.flatMap((calle) => {
-    const nivel = calcularRuidoLocal(
-      {
-        pequeños: calle.trafico_vehiculos_pequenos,
-        medianos: calle.trafico_vehiculos_medianos,
-        grandes: calle.trafico_vehiculos_grandes,
-      },
-      calle.velocidadPromedio ?? 50,
-      calle.tipoSuperficie || "asfalto_no_ranurado",
-      calle.periodoConteo || "15_minutos"
-    );
-    const coordenadas = calle.trazo_calle?.coordinates;
-    if (!Number.isFinite(nivel) || nivel <= 0 || !Array.isArray(coordenadas)) return [];
-
-    const puntos = coordenadas
-      .filter((coordenada) => coordenada.length >= 2 && coordenada.every(Number.isFinite))
-      .map((coordenada) => proyectar(coordenada, referencia));
-    if (puntos.length < 2) return [];
-
-    return [{
-      nivel,
-      segmentos: puntos.slice(1).map((punto, indice) => ({
-        inicio: puntos[indice],
-        fin: punto,
-      })),
-    }];
+const interpolarColor = (colorInicial, colorFinal, proporcion) => {
+  const canales = [1, 3, 5].map((indice) => {
+    const inicial = Number.parseInt(colorInicial.slice(indice, indice + 2), 16);
+    const final = Number.parseInt(colorFinal.slice(indice, indice + 2), 16);
+    return Math.round(inicial + (final - inicial) * proporcion);
   });
 
-export function crearCeldasMapaRuido(calles, zona, maxCeldas = MAX_CELDAS_RUIDO) {
-  const anillos = zona?.type === "Polygon" ? zona.coordinates : null;
-  if (!anillos?.[0]?.length || !Array.isArray(calles) || calles.length === 0) return [];
+  return `#${canales.map((canal) => canal.toString(16).padStart(2, "0")).join("")}`;
+};
 
-  const latitudMedia =
-    anillos[0].reduce((suma, [, latitud]) => suma + latitud, 0) / anillos[0].length;
-  const referencia = {
-    factorLongitud: Math.max(Math.abs(Math.cos((latitudMedia * Math.PI) / 180)), 0.01),
-  };
-  const anillosProyectados = anillos.map((anillo) =>
-    anillo.map((coordenada) => proyectar(coordenada, referencia))
+const obtenerColorGradiente = (nivel) => {
+  const indiceSuperior = coloresGradiente.findIndex((parada) => parada.nivel > nivel);
+  if (indiceSuperior === -1) return coloresGradiente[coloresGradiente.length - 1].color;
+  if (indiceSuperior === 0) return coloresGradiente[0].color;
+
+  const inferior = coloresGradiente[indiceSuperior - 1];
+  const superior = coloresGradiente[indiceSuperior];
+  const proporcion = (nivel - inferior.nivel) / (superior.nivel - inferior.nivel);
+  return interpolarColor(inferior.color, superior.color, proporcion);
+};
+
+const obtenerNivelCalle = (calle) =>
+  calcularRuidoLocal(
+    {
+      pequeños: calle.trafico_vehiculos_pequenos,
+      medianos: calle.trafico_vehiculos_medianos,
+      grandes: calle.trafico_vehiculos_grandes,
+    },
+    calle.velocidadPromedio ?? 50,
+    calle.tipoSuperficie || "asfalto_no_ranurado",
+    calle.periodoConteo || "15_minutos"
   );
-  const vertices = anillosProyectados[0];
-  const minX = Math.min(...vertices.map(([x]) => x));
-  const maxX = Math.max(...vertices.map(([x]) => x));
-  const minY = Math.min(...vertices.map(([, y]) => y));
-  const maxY = Math.max(...vertices.map(([, y]) => y));
-  const area = Math.max(0, (maxX - minX) * (maxY - minY));
-  if (!area) return [];
 
-  const columnasIniciales = Math.max(1, Math.ceil(Math.sqrt(maxCeldas * ((maxX - minX) / (maxY - minY)))));
-  const filasIniciales = Math.max(1, Math.ceil(maxCeldas / columnasIniciales));
-  let tamanoCelda = Math.max(
-    5,
-    (Math.max(maxX - minX, maxY - minY) / Math.max(columnasIniciales, filasIniciales)) * 1.5
-  );
-  while (Math.ceil((maxX - minX) / tamanoCelda) * Math.ceil((maxY - minY) / tamanoCelda) > maxCeldas) {
-    tamanoCelda *= 1.05;
-  }
+export const obtenerAlcanceRuidoMetros = (nivelFuente, nivelObjetivo) =>
+  DISTANCIA_REFERENCIA_METROS * 10 ** ((nivelFuente - nivelObjetivo) / 10);
 
-  const fuentes = fuentesDeRuido(calles, referencia);
-  if (!fuentes.length) return [];
+const obtenerExtensionMaximaZona = (coordenadasZona) => {
+  const vertices = coordenadasZona.flat();
+  const longitudes = vertices.map(([longitud]) => longitud);
+  const latitudes = vertices.map(([, latitud]) => latitud);
+  const latitudMedia = (Math.min(...latitudes) + Math.max(...latitudes)) / 2;
+  const extensionEsteOeste =
+    (Math.max(...longitudes) - Math.min(...longitudes)) *
+    METROS_POR_GRADO_LONGITUD *
+    Math.abs(Math.cos((latitudMedia * Math.PI) / 180));
+  const extensionNorteSur =
+    (Math.max(...latitudes) - Math.min(...latitudes)) * METROS_POR_GRADO_LATITUD;
 
-  const celdasPorColor = new Map(NIVELES_RUIDO.map(({ color }) => [color, []]));
-  const filas = Math.ceil((maxY - minY) / tamanoCelda);
-  const columnas = Math.ceil((maxX - minX) / tamanoCelda);
+  return Math.hypot(extensionEsteOeste, extensionNorteSur);
+};
 
-  for (let fila = 0; fila < filas; fila += 1) {
-    for (let columna = 0; columna < columnas; columna += 1) {
-      const x = minX + (columna + 0.5) * tamanoCelda;
-      const y = minY + (fila + 0.5) * tamanoCelda;
-      if (!puntoDentroDeZona([x, y], anillosProyectados)) continue;
+export function crearFranjasMapaRuido(calles, zona) {
+  const coordenadasZona = zona?.type === "Polygon" ? zona.coordinates : null;
+  if (!Array.isArray(calles) || calles.length === 0 || !coordenadasZona?.[0]?.length) return [];
 
-      let energiaAcumulada = 0;
-      for (const fuente of fuentes) {
-        const distancia = Math.max(
-          1,
-          Math.min(
-            ...fuente.segmentos.map(({ inicio, fin }) =>
-              distanciaAlSegmento([x, y], inicio, fin)
-            )
-          )
-        );
-        const nivelEnCelda = fuente.nivel - 10 * Math.log10(distancia / 25);
-        energiaAcumulada += 10 ** (nivelEnCelda / 10);
+  const capas = [];
+  const areaProyecto = polygon(coordenadasZona);
+  const extensionMaximaZona = obtenerExtensionMaximaZona(coordenadasZona);
+
+  for (const calle of calles) {
+    const nivel = obtenerNivelCalle(calle);
+    const coordenadas = calle.trazo_calle?.coordinates;
+    if (!Number.isFinite(nivel) || nivel <= 0 || !Array.isArray(coordenadas)) continue;
+    if (coordenadas.length < 2) continue;
+
+    const alcanceVisible = obtenerAlcanceRuidoMetros(nivel, NIVEL_MINIMO_VISIBLE);
+    if (alcanceVisible < 1) continue;
+
+    const linea = lineString(coordenadas);
+    const nivelMaximoVisible = Math.min(
+      85,
+      nivel + 10 * Math.log10(DISTANCIA_REFERENCIA_METROS)
+    );
+
+    for (
+      let nivelObjetivo = NIVEL_MINIMO_VISIBLE;
+      nivelObjetivo <= nivelMaximoVisible;
+      nivelObjetivo += PASO_GRADIENTE_DB
+    ) {
+      const alcance = Math.min(
+        obtenerAlcanceRuidoMetros(nivel, nivelObjetivo),
+        extensionMaximaZona
+      );
+      if (alcance < 1) continue;
+
+      const area = buffer(linea, alcance, { units: "meters", steps: 12 });
+      if (area) {
+        const recorte = intersect(featureCollection([area, areaProyecto]));
+        if (recorte) {
+          capas.push({
+            type: "Feature",
+            properties: {
+              nivel: nivelObjetivo,
+              color: obtenerColorGradiente(nivelObjetivo),
+              fillOpacity: 0.015 + ((nivelObjetivo - NIVEL_MINIMO_VISIBLE) / 45) * 0.17,
+            },
+            geometry: recorte.geometry,
+          });
+        }
       }
-
-      if (!energiaAcumulada) continue;
-      const nivelTotal = 10 * Math.log10(energiaAcumulada);
-      if (nivelTotal < NIVEL_MINIMO_VISIBLE) continue;
-
-      const color = obtenerColorRuido(nivelTotal).color;
-      const esquinaSuroeste = desproyectar([x - tamanoCelda / 2, y - tamanoCelda / 2], referencia);
-      const esquinaNoreste = desproyectar([x + tamanoCelda / 2, y + tamanoCelda / 2], referencia);
-      celdasPorColor.get(color).push([
-        [
-          [esquinaSuroeste[0], esquinaSuroeste[1]],
-          [esquinaNoreste[0], esquinaSuroeste[1]],
-          [esquinaNoreste[0], esquinaNoreste[1]],
-          [esquinaSuroeste[0], esquinaNoreste[1]],
-          [esquinaSuroeste[0], esquinaSuroeste[1]],
-        ],
-      ]);
     }
   }
 
-  return NIVELES_RUIDO.flatMap(({ color }) => {
-    const coordenadas = celdasPorColor.get(color);
-    if (!coordenadas.length) return [];
-    return [
-      {
-        type: "Feature",
-        properties: { color },
-        geometry: { type: "MultiPolygon", coordinates: coordenadas },
-      },
-    ];
-  });
+  return capas.sort((a, b) => a.properties.nivel - b.properties.nivel);
 }

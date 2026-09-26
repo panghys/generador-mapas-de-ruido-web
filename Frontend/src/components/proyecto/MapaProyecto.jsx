@@ -10,7 +10,7 @@ import clientAxios from "../config/clienteAxios";
 import CalleModal from "./CalleModal";
 import InstruccionesMapaModal from "./InstruccionesMapaModal";
 import { NIVELES_RUIDO, obtenerColorRuido } from "./nivelesRuido";
-import { crearCeldasMapaRuido } from "./ruidoHeatmap";
+import { crearFranjasMapaRuido } from "./ruidoHeatmap";
 import { calcularRuidoLocal } from "./ruidoLocal";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import "@geoman-io/leaflet-geoman-free";
@@ -258,18 +258,18 @@ const MapaProyecto = () => {
 
     const panelRuido = map.getPane("superficieRuido") || map.createPane("superficieRuido");
     panelRuido.style.zIndex = "350";
-    const celdas = crearCeldasMapaRuido(calles, proyecto.zona);
-    if (celdas.length === 0) return;
+    const franjasRuido = crearFranjasMapaRuido(calles, proyecto.zona);
+    if (franjasRuido.length === 0) return;
 
     const capas = L.featureGroup(
-      celdas.map((feature) =>
+      franjasRuido.map((feature) =>
         L.geoJSON(feature, {
           pane: "superficieRuido",
           interactive: false,
           style: ({ properties }) => ({
             color: properties.color,
             fillColor: properties.color,
-            fillOpacity: 0.42,
+            fillOpacity: properties.fillOpacity,
             opacity: 0,
             weight: 0,
           }),
@@ -796,7 +796,9 @@ const MapaProyecto = () => {
             <div className="h-px w-full bg-dash-border" />
 
             <div className="border border-dash-border bg-[#101b1d] p-3">
-              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-dash-text-soft">Calles</h2>
+              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-dash-text-soft">
+                Calles
+              </h2>
 
               {!trazoPendiente && delimitando !== "calle" && (
                 <button
@@ -877,7 +879,7 @@ const MapaProyecto = () => {
                 ))}
               </div>
               <p className="mt-3 text-xs text-dash-text-soft">
-                Se muestran celdas desde 45 dB(A). La propagación no considera edificios ni terreno.
+                Franjas de color estimadas desde 45 dB(A); no consideran edificios ni terreno.
               </p>
               <button
                 type="button"
