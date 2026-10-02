@@ -1,4 +1,4 @@
-import buffer from "@turf/buffer";
+/*import buffer from "@turf/buffer";
 import intersect from "@turf/intersect";
 import { featureCollection, lineString, polygon } from "@turf/helpers";
 import { NIVELES_RUIDO } from "./nivelesRuido.js";
@@ -123,3 +123,4 @@ export function crearFranjasMapaRuido(calles, zona) {
 
   return capas.sort((a, b) => a.properties.nivel - b.properties.nivel);
 }
+*/

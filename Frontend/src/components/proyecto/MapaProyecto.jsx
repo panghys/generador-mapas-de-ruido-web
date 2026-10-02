@@ -10,7 +10,8 @@ import clientAxios from "../config/clienteAxios";
 import CalleModal from "./CalleModal";
 import InstruccionesMapaModal from "./InstruccionesMapaModal";
 import { NIVELES_RUIDO, obtenerColorRuido } from "./nivelesRuido";
-import { crearFranjasMapaRuido } from "./ruidoHeatmap";
+import CapaRuidoRaster from "./CapaRuidoRaster";
+import { obtenerNivelEmisionCalle } from "./ruidoPropagacion";
 import { calcularRuidoLocal } from "./ruidoLocal";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import "@geoman-io/leaflet-geoman-free";
@@ -104,11 +105,78 @@ const estiloZona = {
   fillOpacity: 0.15,
 };
 
+const PANE_SUPERFICIE_RUIDO = "superficieRuido";
+const PANE_CALLES = "callesRuido";
+const Z_INDEX_SUPERFICIE_RUIDO = 350;
+const Z_INDEX_CALLES = 650;
+const OPACIDAD_SUPERFICIE_RUIDO = 0.6;
+
+const PESO_CALLE = 3;
+const PESO_CALLE_SELECCIONADA = 5;
+const INCREMENTO_BORDE_CALLE = 3;
+const COLOR_BORDE_CALLE = "#111827";
+
 const estiloCallePendiente = {
   color: "#facc15",
-  weight: 6,
+  weight: PESO_CALLE,
+  dashArray: "8, 6",
+  opacity: 1,
+};
+
+// Estilo del trazo temporal que dibuja Geoman mientras el usuario traza la calle.
+const estiloTemplineDibujo = {
+  color: "#facc15",
+  weight: 5,
   dashArray: "10, 6",
   opacity: 1,
+};
+
+/**
+ * Calle con doble trazo: borde oscuro (weight + 3) y centro de color (weight),
+ * ambos en un pane propio sobre la superficie de ruido. Devuelve un FeatureGroup
+ * que conserva la interfaz de una polilínea (setStyle, getLatLngs, on("click")).
+ */
+const crearCalleDobleTrazo = (latlngs, estiloCentro = {}) => {
+  const opcionesComunes = {
+    pane: PANE_CALLES,
+    lineCap: "round",
+    lineJoin: "round",
+    interactive: true,
+    bubblingMouseEvents: false,
+  };
+
+  const borde = L.polyline(latlngs, {
+    ...opcionesComunes,
+    color: COLOR_BORDE_CALLE,
+    weight: (estiloCentro.weight ?? PESO_CALLE) + INCREMENTO_BORDE_CALLE,
+    opacity: 0.95,
+  });
+
+  const centro = L.polyline(latlngs, {
+    ...opcionesComunes,
+    color: estiloCentro.color ?? "#FF0000",
+    weight: estiloCentro.weight ?? PESO_CALLE,
+    dashArray: estiloCentro.dashArray ?? null,
+    opacity: estiloCentro.opacity ?? 1,
+  });
+
+  const grupo = L.featureGroup([borde, centro]);
+
+  grupo.setStyle = (estilo = {}) => {
+    const cambiosCentro = {};
+    if (estilo.color !== undefined) cambiosCentro.color = estilo.color;
+    if (estilo.dashArray !== undefined) cambiosCentro.dashArray = estilo.dashArray;
+    if (estilo.opacity !== undefined) cambiosCentro.opacity = estilo.opacity;
+    if (estilo.weight !== undefined) {
+      cambiosCentro.weight = estilo.weight;
+      borde.setStyle({ weight: estilo.weight + INCREMENTO_BORDE_CALLE });
+    }
+    centro.setStyle(cambiosCentro);
+    return grupo;
+  };
+  grupo.getLatLngs = () => centro.getLatLngs();
+
+  return grupo;
 };
 
 const VISTA_INICIAL_SIN_ZONA = { centro: [-35.6751, -71.543], zoom: 4 };
@@ -191,6 +259,13 @@ const MapaProyecto = () => {
 
     mapInstance.current = map;
 
+    // Superficie térmica (debajo de las capas vectoriales) y ejes viales (encima de todo).
+    const paneSuperficie = map.createPane(PANE_SUPERFICIE_RUIDO);
+    paneSuperficie.style.zIndex = String(Z_INDEX_SUPERFICIE_RUIDO);
+    paneSuperficie.style.pointerEvents = "none";
+    const paneCalles = map.createPane(PANE_CALLES);
+    paneCalles.style.zIndex = String(Z_INDEX_CALLES);
+
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap contributors",
     }).addTo(map);
@@ -216,11 +291,11 @@ const MapaProyecto = () => {
             calleDb.tipoSuperficie || "asfalto_no_ranurado",
             calleDb.periodoConteo || "15_minutos"
           );
-          const layer = L.polyline(lineStringALatLngs(calleDb.trazo_calle), {
+          const layer = crearCalleDobleTrazo(lineStringALatLngs(calleDb.trazo_calle), {
             color: nivelRuido > 0
               ? obtenerColorRuido(nivelRuido).color
               : calleDb.color_asignado || "#FF0000",
-            weight: 5,
+            weight: PESO_CALLE,
           }).addTo(map);
 
           const calleObj = { ...calleDb, nivelRuidoCalculado: nivelRuido, layer };
@@ -249,38 +324,27 @@ const MapaProyecto = () => {
   useEffect(() => {
     const map = mapInstance.current;
     if (!map) return;
-
-    if (superficieRuidoRef.current) {
-      map.removeLayer(superficieRuidoRef.current);
-      superficieRuidoRef.current = null;
-    }
     if (!mostrarSuperficieRuido || !proyecto?.zona || calles.length === 0) return;
 
-    const panelRuido = map.getPane("superficieRuido") || map.createPane("superficieRuido");
-    panelRuido.style.zIndex = "350";
-    const franjasRuido = crearFranjasMapaRuido(calles, proyecto.zona);
-    if (franjasRuido.length === 0) return;
+    const fuentes = calles
+      .map((calle) => ({
+        latlngs: calle.layer?.getLatLngs
+          ? calle.layer.getLatLngs().map((punto) => [punto.lat, punto.lng])
+          : [],
+        nivel: obtenerNivelEmisionCalle(calle),
+      }))
+      .filter((fuente) => fuente.latlngs.length >= 2 && Number.isFinite(fuente.nivel));
+    if (fuentes.length === 0) return;
 
-    const capas = L.featureGroup(
-      franjasRuido.map((feature) =>
-        L.geoJSON(feature, {
-          pane: "superficieRuido",
-          interactive: false,
-          style: ({ properties }) => ({
-            color: properties.color,
-            fillColor: properties.color,
-            fillOpacity: properties.fillOpacity,
-            opacity: 0,
-            weight: 0,
-          }),
-        })
-      )
+    const capa = new CapaRuidoRaster(
+      { calles: fuentes, zona: polygonALatLngs(proyecto.zona) },
+      { pane: PANE_SUPERFICIE_RUIDO, opacidad: OPACIDAD_SUPERFICIE_RUIDO }
     ).addTo(map);
-    superficieRuidoRef.current = capas;
+    superficieRuidoRef.current = capa;
 
     return () => {
-      if (map.hasLayer(capas)) map.removeLayer(capas);
-      if (superficieRuidoRef.current === capas) superficieRuidoRef.current = null;
+      if (map.hasLayer(capa)) map.removeLayer(capa);
+      if (superficieRuidoRef.current === capa) superficieRuidoRef.current = null;
     };
   }, [calles, proyecto?.zona, mostrarSuperficieRuido]);
 
@@ -294,7 +358,7 @@ const MapaProyecto = () => {
       map.pm.setGlobalOptions({ finishOnEnter: true });
       map.pm.enableDraw("Line", {
         finishOn: "dblclick",
-        templineStyle: estiloCallePendiente,
+        templineStyle: estiloTemplineDibujo,
         hintlineStyle: { color: "#facc15", dashArray: "6, 6" },
       });
     } else if (delimitando === "mark") {
@@ -327,10 +391,12 @@ const MapaProyecto = () => {
           return;
         }
 
-        layer.setStyle(estiloCallePendiente);
-        layer.bringToFront();
+        // Se reemplaza la capa de Geoman por una con doble trazo en el pane de calles.
+        const latlngsTrazo = layer.getLatLngs().map((punto) => [punto.lat, punto.lng]);
+        layer.remove();
+        const capaPendiente = crearCalleDobleTrazo(latlngsTrazo, estiloCallePendiente).addTo(map);
 
-        setTrazoPendiente({ layer, trazoGeoJSON: trazo });
+        setTrazoPendiente({ layer: capaPendiente, trazoGeoJSON: trazo });
         setDelimitando(null);
         return;
       }
@@ -423,9 +489,10 @@ const MapaProyecto = () => {
     if (!mapInstance.current) return;
 
     const halo = L.polyline(calle.layer.getLatLngs(), {
+      pane: PANE_CALLES,
       color: "#ffffff",
-      weight: 12,
-      opacity: 0.55,
+      weight: 14,
+      opacity: 0.7,
       interactive: false,
     }).addTo(mapInstance.current);
 
@@ -448,7 +515,7 @@ const MapaProyecto = () => {
     if (!calleActual) return;
 
     resaltarCalle(calleActual);
-    calleActual.layer.setStyle({ weight: 8 });
+    calleActual.layer.setStyle({ weight: PESO_CALLE_SELECCIONADA });
 
     setModalDatosIniciales(calleActual);
     setModalCalleAbierto(true);
@@ -479,7 +546,7 @@ const MapaProyecto = () => {
         const nivelRuido = data.data.nivelRuidoCalculado;
         modalDatosIniciales.layer.setStyle({
           color: nivelRuido > 0 ? obtenerColorRuido(nivelRuido).color : datos.color_asignado,
-          weight: 5,
+          weight: PESO_CALLE,
         });
         quitarResaltadoCalle();
 
@@ -497,7 +564,7 @@ const MapaProyecto = () => {
         const nivelRuido = data.data.nivelRuidoCalculado;
         layer.setStyle({
           color: nivelRuido > 0 ? obtenerColorRuido(nivelRuido).color : datos.color_asignado,
-          weight: 5,
+          weight: PESO_CALLE,
           dashArray: null,
           opacity: 1,
         });
@@ -522,7 +589,7 @@ const MapaProyecto = () => {
     if (!modalDatosIniciales) {
       cancelarTrazoPendiente();
     } else {
-      modalDatosIniciales.layer.setStyle({ weight: 5 });
+      modalDatosIniciales.layer.setStyle({ weight: PESO_CALLE });
       quitarResaltadoCalle();
     }
 
@@ -879,7 +946,7 @@ const MapaProyecto = () => {
                 ))}
               </div>
               <p className="mt-3 text-xs text-dash-text-soft">
-                Franjas de color estimadas desde 45 dB(A); no consideran edificios ni terreno.
+                Superficie continua RLS-90 / DIN 18005-2 desde 45 dB(A), con suma energética entre calles; no considera edificios ni terreno.
               </p>
               <button
                 type="button"
