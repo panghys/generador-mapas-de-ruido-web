@@ -8,6 +8,14 @@ export async function getStreetsByProject_(proyectoId) {
   }
 }
 
+export async function getStreetById_(id, proyectoId) {
+  try {
+    return await Street.findOne({ where: { id, proyecto_id: proyectoId } });
+  } catch (error) {
+    throw new Error("No se pudo obtener la calle");
+  }
+}
+
 export async function createStreet_(street) {
   try {
     return await Street.create(street);

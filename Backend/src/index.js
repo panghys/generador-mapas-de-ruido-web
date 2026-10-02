@@ -12,8 +12,10 @@ dotenv.config();
 
 import app from "./app.js";
 import { sequelize } from "./persintence/database/database.js";
+import { ensureStreetNoiseColumns } from "./persintence/database/ensureStreetNoiseColumns.js";
 
 async function main() {
+  await ensureStreetNoiseColumns();
   await sequelize.sync({ force: false });
 
   const port = process.env.PORT || 4003;
