@@ -50,6 +50,19 @@ const Proyecto = () => {
     }
   };
 
+  // El backend ya acepta { estado } en PUT /proyectos/:id (actualización parcial).
+  const handleCambiarEstado = async (proyectoId, nuevoEstado) => {
+    setError("");
+    try {
+      const { data } = await clientAxios.put(`/proyectos/${proyectoId}`, { estado: nuevoEstado });
+      setProyectos((prev) =>
+        prev.map((p) => (p.id === proyectoId ? { ...p, ...data.data } : p))
+      );
+    } catch (err) {
+      setError("No se pudo cambiar el estado del proyecto.");
+    }
+  };
+
   const handleAbrir = (proyecto) => {
     navigate(`/proyectos/${proyecto.id}/mapa`, { state: { proyecto } });
   };
@@ -117,7 +130,12 @@ const Proyecto = () => {
           {cargando ? (
             <p className="text-dash-text-soft text-sm">Cargando proyectos...</p>
           ) : (
-            <ListaProyectos proyectos={proyectosFiltrados} onOpen={handleAbrir} onDelete={handleEliminar} />
+            <ListaProyectos
+              proyectos={proyectosFiltrados}
+              onOpen={handleAbrir}
+              onDelete={handleEliminar}
+              onToggleEstado={handleCambiarEstado}
+            />
           )}
         </div>
       </div>

@@ -1,36 +1,28 @@
-/**
- * Estándar DIN 18005-2 / ISO 9613-2 para mapas estratégicos de ruido.
- */
-
 export const NIVEL_CORTE_DB = 45;
 export const NIVEL_MAXIMO_ESCALA_DB = 80;
 
 export const PARADAS_COLOR_RUIDO = [
-  { nivel: 45, color: "#2e7d32" }, // Verde bosque oscuro (umbral corte)
-  { nivel: 50, color: "#4caf50" }, // Verde brillante
-  { nivel: 55, color: "#cddc39" }, // Lima / Amarillo verdoso
-  { nivel: 60, color: "#ffeb3b" }, // Amarillo puro
-  { nivel: 65, color: "#ff9800" }, // Naranja fuego
-  { nivel: 70, color: "#f44336" }, // Rojo vivo
-  { nivel: 75, color: "#b71c1c" }, // Rojo sangre oscuro
-  { nivel: 80, color: "#4a148c" }, // Púrpura profundo (eje máximo)
+  { nivel: 45, color: "#2e7d32" },
+  { nivel: 50, color: "#4caf50" },
+  { nivel: 55, color: "#cddc39" },
+  { nivel: 60, color: "#ffeb3b" },
+  { nivel: 65, color: "#ff9800" }, 
+  { nivel: 70, color: "#f44336" }, 
+  { nivel: 75, color: "#b71c1c" }, 
+  { nivel: 80, color: "#4a148c" }, 
 ];
-
-/**
- * Categorías discretas para tooltips, leyendas y modales.
- */
+export const ANCHO_BANDA_DB = 5;
+export const NIVELES_RUIDO = PARADAS_COLOR_RUIDO.map(({ nivel, color }, indice, paradas) => {
+  const esUltima = indice === paradas.length - 1;
+  return {
+    color,
+    desde: nivel,
+    hasta: esUltima ? null : paradas[indice + 1].nivel,
+    rango: esUltima ? `≥ ${nivel}` : `${nivel} – ${paradas[indice + 1].nivel}`,
+  };
+});
 export function obtenerColorRuido(dBA) {
-  if (dBA <= 55) return { color: "#66bd63", etiqueta: "Bajo", rango: "≤55 dB" };
-  if (dBA <= 60) return { color: "#fee08b", etiqueta: "Moderado", rango: "55-60 dB" };
-  if (dBA <= 65) return { color: "#fdae61", etiqueta: "Alto", rango: "60-65 dB" };
-  if (dBA <= 70) return { color: "#d73027", etiqueta: "Muy alto", rango: "65-70 dB" };
-  return { color: "#49006a", etiqueta: "Crítico", rango: ">70 dB" };
+  const indice = Math.floor((dBA - NIVEL_CORTE_DB) / ANCHO_BANDA_DB);
+  const acotado = Math.min(NIVELES_RUIDO.length - 1, Math.max(0, indice));
+  return NIVELES_RUIDO[acotado];
 }
-
-export const NIVELES_RUIDO = [
-  { color: "#66bd63", etiqueta: "Bajo", rango: "≤55 dB(A)" },
-  { color: "#fee08b", etiqueta: "Moderado", rango: "55-60 dB(A)" },
-  { color: "#fdae61", etiqueta: "Alto", rango: "60-65 dB(A)" },
-  { color: "#d73027", etiqueta: "Muy alto", rango: "65-70 dB(A)" },
-  { color: "#49006a", etiqueta: "Crítico", rango: ">70 dB(A)" },
-];

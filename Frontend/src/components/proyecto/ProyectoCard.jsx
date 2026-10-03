@@ -7,9 +7,23 @@ import MiniMapaPreview from "./MiniMapaPreview";
 const formatFecha = (fecha) =>
   new Date(fecha).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" });
 
-const ProyectoCard = ({ proyecto, onOpen, onDelete }) => {
+const ProyectoCard = ({ proyecto, onOpen, onDelete, onToggleEstado }) => {
   const [modalEliminacionAbierto, setModalEliminacionAbierto] = useState(false);
   const [eliminando, setEliminando] = useState(false);
+  const [cambiandoEstado, setCambiandoEstado] = useState(false);
+
+  const esListo = proyecto.estado === "listo";
+
+  // Alterna entre "borrador" y "listo" (finalizado). Un proyecto "procesando" no se toca.
+  const handleToggleEstado = async (e) => {
+    e.stopPropagation(); // el clic no debe abrir el proyecto
+    setCambiandoEstado(true);
+    try {
+      await onToggleEstado(proyecto.id, esListo ? "borrador" : "listo");
+    } finally {
+      setCambiandoEstado(false);
+    }
+  };
 
   const handleEliminar = async () => {
     setEliminando(true);
@@ -45,7 +59,31 @@ const ProyectoCard = ({ proyecto, onOpen, onDelete }) => {
           <div className="flex items-center justify-between mb-2">
             <EstadoBadge estado={proyecto.estado} />
             <div className="flex items-center gap-2">
-              {/* Botón de eliminar con icono de papelera */}
+              {/* Toggle borrador ⇄ listo */}
+              <button
+                type="button"
+                role="switch"
+                aria-checked={esListo}
+                aria-label={esListo ? "Volver a borrador" : "Marcar como listo"}
+                title={esListo ? "Listo · clic para volver a borrador" : "Borrador · clic para marcar como listo"}
+                onClick={handleToggleEstado}
+                disabled={cambiandoEstado || proyecto.estado === "procesando"}
+                className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-xs text-dash-text-soft transition-colors hover:text-dash-text disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <span
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                    esListo ? "bg-dash-accent" : "bg-white/15"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                      esListo ? "translate-x-[18px]" : "translate-x-[2px]"
+                    }`}
+                  />
+                </span>
+                Listo
+              </button>
+
               <button
                 onClick={handleClickDelete}
                 className="p-1.5 text-dash-text-soft hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
@@ -72,7 +110,7 @@ const ProyectoCard = ({ proyecto, onOpen, onDelete }) => {
         </div>
       </div>
 
-      {/* Modal de confirmación de eliminación */}
+
       {modalEliminacionAbierto && (
         <DeleteConfirmModal
           proyecto={proyecto}

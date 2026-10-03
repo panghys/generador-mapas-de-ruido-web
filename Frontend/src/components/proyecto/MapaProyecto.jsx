@@ -11,6 +11,8 @@ import CalleModal from "./CalleModal";
 import InstruccionesMapaModal from "./InstruccionesMapaModal";
 import { NIVELES_RUIDO, obtenerColorRuido } from "./nivelesRuido";
 import CapaRuidoRaster from "./CapaRuidoRaster";
+import ExportarMapaModal from "./ExportarMapaModal";
+import { crearUrlVistaPrevia, descargarMapaRuido, generarMapaRuido } from "./exportarMapaRuido";
 import { obtenerNivelEmisionCalle } from "./ruidoPropagacion";
 import { calcularRuidoLocal } from "./ruidoLocal";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
@@ -104,6 +106,17 @@ const estiloZona = {
   fillColor: "#2dd4bf",
   fillOpacity: 0.15,
 };
+
+/** Fuentes de ruido (ejes + nivel de emisión) a partir de las calles cargadas. */
+const construirFuentesRuido = (calles) =>
+  calles
+    .map((calle) => ({
+      latlngs: calle.layer?.getLatLngs
+        ? calle.layer.getLatLngs().map((punto) => [punto.lat, punto.lng])
+        : [],
+      nivel: obtenerNivelEmisionCalle(calle),
+    }))
+    .filter((fuente) => fuente.latlngs.length >= 2 && Number.isFinite(fuente.nivel));
 
 const PANE_SUPERFICIE_RUIDO = "superficieRuido";
 const PANE_CALLES = "callesRuido";
@@ -205,6 +218,12 @@ const MapaProyecto = () => {
   const [modalDatosIniciales, setModalDatosIniciales] = useState(null);
   const [errorGuardarCalle, setErrorGuardarCalle] = useState("");
   const [mostrarSuperficieRuido, setMostrarSuperficieRuido] = useState(true);
+  const [exportando, setExportando] = useState(false);
+  const [errorExportar, setErrorExportar] = useState("");
+  const [vistaPrevia, setVistaPrevia] = useState(null); // { url, ancho, alto, resultado }
+  const [descargando, setDescargando] = useState(false);
+  const [errorDescarga, setErrorDescarga] = useState("");
+  const urlVistaPreviaRef = useRef(null);
 
   const [editandoZona, setEditandoZona] = useState(false);
 
@@ -222,6 +241,54 @@ const MapaProyecto = () => {
 
   const modoOcupado =
     delimitando !== null || editandoZona || modalCalleAbierto || trazoPendiente !== null;
+  const liberarVistaPrevia = useCallback(() => {
+    if (urlVistaPreviaRef.current) URL.revokeObjectURL(urlVistaPreviaRef.current);
+    urlVistaPreviaRef.current = null;
+  }, []);
+
+  const cerrarVistaPrevia = useCallback(() => {
+    liberarVistaPrevia();
+    setVistaPrevia(null);
+    setErrorDescarga("");
+  }, [liberarVistaPrevia]);
+
+  // Libera la URL temporal de la imagen si se sale de la pantalla con la vista previa abierta.
+  useEffect(() => liberarVistaPrevia, [liberarVistaPrevia]);
+
+  // Genera la imagen y la muestra en un popup; la descarga se decide desde ahí.
+  const exportarMapa = async () => {
+    setErrorExportar("");
+    setExportando(true);
+    try {
+      const resultado = await generarMapaRuido({
+        nombre: proyecto.nombre,
+        calles: construirFuentesRuido(calles),
+        zona: polygonALatLngs(proyecto.zona),
+      });
+      const url = await crearUrlVistaPrevia(resultado);
+      liberarVistaPrevia();
+      urlVistaPreviaRef.current = url;
+      setVistaPrevia({ url, ancho: resultado.ancho, alto: resultado.alto, resultado });
+    } catch (error) {
+      setErrorExportar(error.message || "No se pudo exportar el mapa.");
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  const descargarVistaPrevia = async () => {
+    if (!vistaPrevia) return;
+    setErrorDescarga("");
+    setDescargando(true);
+    try {
+      await descargarMapaRuido(vistaPrevia.resultado, "png");
+    } catch (error) {
+      setErrorDescarga(error.message || "No se pudo descargar la imagen.");
+    } finally {
+      setDescargando(false);
+    }
+  };
+
   const hayTraficoRegistrado = calles.some(
     (calle) =>
       Number(calle.trafico_vehiculos_pequenos) +
@@ -268,6 +335,7 @@ const MapaProyecto = () => {
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap contributors",
+      crossOrigin: true, // permite reutilizar las teselas al exportar el mapa como imagen
     }).addTo(map);
 
     if (proyecto.zona) {
@@ -326,14 +394,7 @@ const MapaProyecto = () => {
     if (!map) return;
     if (!mostrarSuperficieRuido || !proyecto?.zona || calles.length === 0) return;
 
-    const fuentes = calles
-      .map((calle) => ({
-        latlngs: calle.layer?.getLatLngs
-          ? calle.layer.getLatLngs().map((punto) => [punto.lat, punto.lng])
-          : [],
-        nivel: obtenerNivelEmisionCalle(calle),
-      }))
-      .filter((fuente) => fuente.latlngs.length >= 2 && Number.isFinite(fuente.nivel));
+    const fuentes = construirFuentesRuido(calles);
     if (fuentes.length === 0) return;
 
     const capa = new CapaRuidoRaster(
@@ -935,13 +996,16 @@ const MapaProyecto = () => {
 
             <div className="border border-dash-border bg-[#101b1d] p-3">
               <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-dash-text-soft">
-                Niveles de ruido
+                Niveles de ruido dB(A)
               </h2>
-              <div className="flex flex-col gap-2">
-                {NIVELES_RUIDO.map(({ color, etiqueta }) => (
+              <div className="flex flex-col gap-1.5">
+                {NIVELES_RUIDO.map(({ color, rango }) => (
                   <div key={color} className="flex items-center gap-2 text-sm">
-                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} />
-                    <span>{etiqueta}</span>
+                    <span
+                      className="h-3 w-6 border border-black/40"
+                      style={{ backgroundColor: color }}
+                    />
+                    <span>{rango} dB(A)</span>
                   </div>
                 ))}
               </div>
@@ -956,6 +1020,15 @@ const MapaProyecto = () => {
               >
                 {mostrarSuperficieRuido ? "Ocultar superficie" : "Mostrar superficie"}
               </button>
+              <button
+                type="button"
+                onClick={exportarMapa}
+                disabled={!proyecto.zona || !hayTraficoRegistrado || exportando}
+                className="mt-2 w-full bg-dash-accent px-2 py-2 text-sm font-semibold text-dash-bg hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {exportando ? "Generando vista previa…" : "Exportar mapa"}
+              </button>
+              {errorExportar && <p className="mt-2 text-xs text-red-400">{errorExportar}</p>}
             </div>
 
             <button
@@ -976,6 +1049,14 @@ const MapaProyecto = () => {
         onGuardar={guardarCalleDesdeModal}
         onEliminar={eliminarCalleDesdeModal}
         onCancelar={cancelarModalCalle}
+      />
+
+      <ExportarMapaModal
+        vista={vistaPrevia}
+        descargando={descargando}
+        error={errorDescarga}
+        onDescargar={descargarVistaPrevia}
+        onCerrar={cerrarVistaPrevia}
       />
 
       <InstruccionesMapaModal
