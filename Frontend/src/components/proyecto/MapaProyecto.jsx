@@ -756,9 +756,9 @@ const MapaProyecto = () => {
 
   if (!proyecto) {
     return (
-      <main className="min-h-screen bg-dash-bg px-6 py-12 text-dash-text">
+      <main className="min-h-screen bg-[#D1DDF2] px-6 py-12 text-[#052B59]">
         <p>Proyecto no encontrado.</p>
-        <button onClick={() => navigate("/proyectos")} className="mt-4 text-sm text-dash-accent">
+        <button onClick={() => navigate("/proyectos")} className="mt-4 text-sm text-[#1C5DAC]t">
           Volver a proyectos
         </button>
       </main>
@@ -766,11 +766,11 @@ const MapaProyecto = () => {
   }
 
   return (
-    <main className="min-h-screen bg-dash-bg px-6 py-8 font-sans text-dash-text">
+    <main className="min-h-screen bg-[#D1DDF2] px-6 py-8 font-sans text-[#052B59]">
       <div className="mx-auto max-w-6xl">
         <button
           onClick={() => navigate("/proyectos")}
-          className="mb-6 text-sm text-dash-text-soft hover:text-dash-text"
+          className="mb-6 text-sm text-[#4B5563] hover:text-[#1C5DAC]"
         >
           ← Volver a proyectos
         </button>
@@ -778,13 +778,13 @@ const MapaProyecto = () => {
         <div className="mb-6">
           <div className="mb-2 flex items-center gap-3">
             <EstadoBadge estado={proyecto.estado} />
-            <span className="text-xs text-dash-text-soft">Mapa con OpenStreetMap</span>
+            <span className="text-xs text-[#4B5563]">Mapa con OpenStreetMap</span>
           </div>
 
           <h1 className="text-3xl font-semibold">{proyecto.nombre}</h1>
 
           {(proyecto.comuna || proyecto.region) && (
-            <p className="mt-2 text-sm text-dash-text-soft">
+            <p className="mt-2 text-sm text-[#4B5563]">
               {[proyecto.comuna, proyecto.region].filter(Boolean).join(", ")}
             </p>
           )}
@@ -804,13 +804,13 @@ const MapaProyecto = () => {
                   if (e.key === "Enter") buscarUbicacion();
                 }}
                 placeholder="Ej: Valdivia, Chile o -39.8142, -73.2459"
-                className="flex-1 border border-dash-border bg-[#162326] px-4 py-2.5 text-sm text-white outline-none placeholder:text-dash-text-soft focus:border-dash-accent"
+                className="flex-1 border border-slate-300 bg-white px-4 py-2.5 text-sm rounded-lg text-black outline-none placeholder:text-dash-text-soft focus:border-[#1C5DAC]"
               />
 
               <button
                 onClick={buscarUbicacion}
                 disabled={buscando}
-                className="bg-dash-accent px-5 py-2.5 text-sm font-semibold text-dash-bg hover:opacity-90 disabled:opacity-60"
+                className="bg-[#1C5DAC] px-5 py-2.5 text-sm font-semibold text-white rounded-lg hover:opacity-90 disabled:opacity-60"
               >
                 {buscando ? "Buscando..." : "Buscar"}
               </button>
@@ -819,10 +819,10 @@ const MapaProyecto = () => {
                 onClick={centrarEnZona}
                 disabled={!proyecto.zona}
                 title={!proyecto.zona ? "Primero delimita una zona" : "Centrar el mapa en la zona delimitada"}
-                className={`whitespace-nowrap border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                className={`whitespace-nowrap border px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
                   proyecto.zona
-                    ? "border-dash-accent text-dash-accent hover:bg-dash-accent/10"
-                    : "cursor-not-allowed border-dash-border text-dash-text-soft/50"
+                    ? "border-[#1C5DAC] text-[#1C5DAC] hover:bg-[#1C5DAC]/10"
+                    : "cursor-not-allowed border-[#4B5563]/50 text-[#4B5563]/50"
                 }`}
               >
                 📍 Centrar en zona
@@ -832,8 +832,8 @@ const MapaProyecto = () => {
             {errorBusqueda && <p className="mb-3 text-sm text-red-400">{errorBusqueda}</p>}
 
             {delimitando && (
-              <div className="mb-3 flex items-center gap-2 border border-dash-accent bg-dash-accent/10 px-4 py-2 text-sm font-medium text-dash-accent">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-dash-accent" />
+              <div className="mb-3 flex items-center gap-2 border border-[#1C5DAC] bg-[#1C5DAC]/10 px-4 py-2 text-sm font-medium text-[#1C5DAC]">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-[#1C5DAC]" />
                 {delimitando === "area" && "Modo delimitación de zona activo"}
                 {delimitando === "calle" && "Modo trazado de calle activo: Termina el trazado con Enter o con doble click"}
                 {delimitando === "mark" && "Modo marcador activo: haz clic en el mapa para colocarlo"}
@@ -841,15 +841,15 @@ const MapaProyecto = () => {
             )}
 
             {editandoZona && (
-              <div className="mb-3 flex items-center gap-2 border border-yellow-500 bg-yellow-500/10 px-4 py-2 text-sm font-medium text-yellow-400">
+              <div className="mb-3 flex items-center gap-2 border border-yellow-500 bg-yellow-500/70 px-4 py-2 text-sm font-medium text-white">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-yellow-400" />
                 Editando zona: arrastra los vértices y luego "Guardar zona"
               </div>
             )}
 
             {trazoPendiente && (
-              <div className="mb-3 flex items-center gap-2 border border-emerald-500 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-400">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+              <div className="mb-3 flex items-center gap-2 border border-[#1C5DAC] bg-[#1C5DAC]/10 px-4 py-2 text-sm font-medium text-[#1C5DAC]">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-[#1C5DAC]" />
                 Trazo listo — guarda los datos de la calle o cancélalo desde el panel lateral
               </div>
             )}
@@ -860,13 +860,13 @@ const MapaProyecto = () => {
 
             {errorCalles && <p className="mt-4 text-sm text-red-400">{errorCalles}</p>}
             {cargandoCalles && (
-              <p className="mt-4 text-sm text-dash-text-soft">Cargando calles guardadas...</p>
+              <p className="mt-4 text-sm text-[#4B5563]">Cargando calles guardadas...</p>
             )}
           </div>
 
           <div className="flex w-64 flex-col gap-y-4">
-            <div className="border border-dash-border bg-[#101b1d] p-3">
-              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-dash-text-soft">
+            <div className="border border-slate-300 bg-white/70 rounded-lg p-3">
+              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#243B53]">
                 Zona de trabajo
               </h2>
 
@@ -876,8 +876,8 @@ const MapaProyecto = () => {
                   disabled={modoOcupado && delimitando !== "area"}
                   className={`w-full px-4 py-2.5 text-sm font-semibold transition-colors ${
                     delimitando === "area"
-                      ? "bg-dash-bg text-dash-accent ring-2 ring-dash-accent"
-                      : "bg-dash-accent text-dash-bg hover:opacity-90"
+                      ? "bg-[#154682] text-[#70adf7] ring-2 ring-[#70adf7] rounded-lg"
+                      : "bg-[#1C5DAC] text-white hover:opacity-90"
                   } disabled:cursor-not-allowed disabled:opacity-40`}
                 >
                   {delimitando === "area" ? "Cancelar delimitación" : "Delimitar zona"}
@@ -889,14 +889,14 @@ const MapaProyecto = () => {
                   <button
                     onClick={editarZona}
                     disabled={modoOcupado}
-                    className="flex-1 bg-dash-accent px-2 py-2 text-sm font-semibold text-dash-bg hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex-1 bg-[#1C5DAC] px-2 py-2 text-sm font-semibold rounded-lg text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Editar
                   </button>
                   <button
                     onClick={borrarZona}
                     disabled={modoOcupado}
-                    className="flex-1 border border-red-500 px-2 py-2 text-sm font-semibold text-red-400 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex-1 border border-red-500 px-2 py-2 text-sm font-semibold rounded-lg text-red-400 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Borrar
                   </button>
@@ -907,13 +907,13 @@ const MapaProyecto = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={guardarEdicionZona}
-                    className="flex-1 bg-dash-accent px-2 py-2 text-sm font-semibold text-dash-bg hover:opacity-90"
+                    className="flex-1 bg-[#1C5DAC] px-2 py-2 text-sm font-semibold rounded-lg text-white hover:opacity-90"
                   >
                     Guardar zona
                   </button>
                   <button
                     onClick={cancelarEdicionZona}
-                    className="flex-1 border border-dash-border px-2 py-2 text-sm font-semibold text-dash-text hover:bg-[#1d2c2f]"
+                    className="flex-1 border border-[#1C5DAC] rounded-lg px-2 py-2 text-sm font-semibold text-[#4B5563] hover:bg-[#1C5DAC]/20"
                   >
                     Cancelar
                   </button>
@@ -921,10 +921,10 @@ const MapaProyecto = () => {
               )}
             </div>
 
-            <div className="h-px w-full bg-dash-border" />
+            <div className="h-px w-full bg-[#1C5DAC]" />
 
-            <div className="border border-dash-border bg-[#101b1d] p-3">
-              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-dash-text-soft">
+            <div className="border border-slate-300 bg-white/70 p-3 rounded-lg">
+              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#052B59]">
                 Calles
               </h2>
 
@@ -933,7 +933,7 @@ const MapaProyecto = () => {
                   onClick={() => setDelimitando("calle")}
                   disabled={!proyecto.zona || modoOcupado}
                   title={!proyecto.zona ? "Primero delimita una zona" : undefined}
-                  className="w-full bg-dash-accent px-2 py-2 text-sm font-semibold text-dash-bg hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="w-full bg-[#1C5DAC] px-2 py-2 text-sm font-semibold rounded-lg text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Crear calle
                 </button>
@@ -942,7 +942,7 @@ const MapaProyecto = () => {
               {!trazoPendiente && delimitando === "calle" && (
                 <button
                   onClick={() => setDelimitando(null)}
-                  className="w-full bg-dash-bg px-2 py-2 text-sm font-semibold text-dash-accent ring-2 ring-dash-accent"
+                  className="w-full bg-[#1C5DAC] px-2 py-2 text-sm font-semibold rounded-lg text-white ring-2 ring-[#1C5DAC]"
                 >
                   Cancelar trazado
                 </button>
@@ -952,13 +952,13 @@ const MapaProyecto = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={abrirModalParaGuardarTrazo}
-                    className="flex-1 bg-dash-accent px-2 py-2 text-sm font-semibold text-dash-bg hover:opacity-90"
+                    className="flex-1 bg-[#1C5DAC] px-2 py-2 text-sm font-semibold rounded-lg text-white hover:opacity-90"
                   >
                     Guardar calle
                   </button>
                   <button
                     onClick={cancelarTrazoPendiente}
-                    className="flex-1 border border-red-500 px-2 py-2 text-sm font-semibold text-red-400 hover:bg-red-500/10"
+                    className="flex-1 border border-red-500 px-2 py-2 text-sm font-semibold rounded-lg text-red-400 hover:bg-red-500/10"
                   >
                     Cancelar trazado
                   </button>
@@ -969,17 +969,17 @@ const MapaProyecto = () => {
             <button
               onClick={() => setDelimitando((actual) => (actual === "mark" ? null : "mark"))}
               disabled={modoOcupado && delimitando !== "mark"}
-              className={`w-full px-2 py-2 text-sm font-semibold transition-colors ${
+              className={`w-full px-2 py-2 text-sm font-semibold rounded-lg transition-colors ${
                 delimitando === "mark"
-                  ? "bg-dash-bg text-dash-accent ring-2 ring-dash-accent"
-                  : "bg-dash-accent text-dash-bg hover:opacity-90"
+                  ? "bg-[#154682] text-[#70adf7] ring-2 ring-[#1C5DAC]"
+                  : "bg-[#154682] text-white hover:opacity-90"
               } disabled:cursor-not-allowed disabled:opacity-40`}
             >
               {delimitando === "mark" ? "Dejar de añadir marcador" : "Añadir marcador"}
             </button>
 
             {delimitando === "mark" && (
-              <div className="border border-dash-border bg-[#162326] p-4">
+              <div className="border border-slate-300 bg-white/70 rounded-lg p-4">
                 <h2 className="mb-3 text-sm font-semibold">Parámetros del marcador</h2>
                 <label className="flex items-center justify-between text-sm">
                   <span>Test</span>
@@ -988,35 +988,35 @@ const MapaProyecto = () => {
                     inputMode="numeric"
                     value={parametroTest}
                     onChange={(e) => cambiarNumero(e, setParametroTest)}
-                    className="w-20 border border-dash-border bg-[#10191b] px-2 py-1 text-right text-white outline-none"
+                    className="w-20 border border-[#154682] rounded-lg bg-white px-2 py-1 text-right text-[#154682] outline-none"
                   />
                 </label>
               </div>
             )}
 
-            <div className="border border-dash-border bg-[#101b1d] p-3">
-              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-dash-text-soft">
+            <div className="border border-slate-300 bg-white/70 p-3 rounded-lg">
+              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#154682]">
                 Niveles de ruido dB(A)
               </h2>
               <div className="flex flex-col gap-1.5">
                 {NIVELES_RUIDO.map(({ color, rango }) => (
                   <div key={color} className="flex items-center gap-2 text-sm">
                     <span
-                      className="h-3 w-6 border border-black/40"
+                      className="h-3 w-6 border border-[#154682]/40"
                       style={{ backgroundColor: color }}
                     />
                     <span>{rango} dB(A)</span>
                   </div>
                 ))}
               </div>
-              <p className="mt-3 text-xs text-dash-text-soft">
+              <p className="mt-3 text-xs text-[#154682]">
                 Superficie continua RLS-90 / DIN 18005-2 desde 45 dB(A), con suma energética entre calles; no considera edificios ni terreno.
               </p>
               <button
                 type="button"
                 onClick={() => setMostrarSuperficieRuido((visible) => !visible)}
                 disabled={!proyecto.zona || !hayTraficoRegistrado}
-                className="mt-3 w-full border border-dash-border px-2 py-2 text-sm font-semibold text-dash-text hover:bg-[#1d2c2f] disabled:cursor-not-allowed disabled:opacity-40"
+                className="mt-3 w-full border border-[#154682] px-2 py-2 text-sm font-semibold rounded-lg text-[#154682] hover:bg-[#154682]/40 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {mostrarSuperficieRuido ? "Ocultar superficie" : "Mostrar superficie"}
               </button>
@@ -1024,7 +1024,7 @@ const MapaProyecto = () => {
                 type="button"
                 onClick={exportarMapa}
                 disabled={!proyecto.zona || !hayTraficoRegistrado || exportando}
-                className="mt-2 w-full bg-dash-accent px-2 py-2 text-sm font-semibold text-dash-bg hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                className="mt-2 w-full bg-[#154682] px-2 py-2 text-sm font-semibold text-white rounded-lg hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {exportando ? "Generando vista previa…" : "Exportar mapa"}
               </button>
@@ -1034,7 +1034,7 @@ const MapaProyecto = () => {
             <button
               type="button"
               onClick={() => setInstruccionesAbiertas(true)}
-              className="w-full border border-dash-border px-2 py-2 text-sm font-semibold text-dash-text hover:bg-[#1d2c2f]"
+              className="w-full border border-[#154682] px-2 py-2 text-sm font-semibold rounded-lg text-[#154682] hover:bg-[#154682]/40"
             >
               Cómo usar el mapa
             </button>

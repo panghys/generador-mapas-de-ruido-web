@@ -44,13 +44,13 @@ const ProyectoCard = ({ proyecto, onOpen, onDelete, onToggleEstado }) => {
     <>
       <div
         onClick={() => onOpen(proyecto)}
-        className="text-left bg-dash-surface hover:bg-dash-surface-hover border border-dash-border rounded-xl overflow-hidden transition-colors group cursor-pointer relative"
+        className="text-left bg-[#1C5DAC] hover:bg-[#1C5DAC]/90 border border-[#4B5563] rounded-xl overflow-hidden transition-colors group cursor-pointer relative"
       >
         {/* Vista previa: mini-mapa de la zona delimitada, o placeholder si aún no existe */}
-        <div className="relative h-[150px] border-b border-dash-border">
+        <div className="relative h-[150px] border-b border-[#4B5563]">
           <MiniMapaPreview zona={proyecto.zona} proyectoId={proyecto.id} />
 
-          <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-dash-bg/80 px-2.5 py-1 text-xs font-medium text-dash-text-soft backdrop-blur-sm">
+          <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-[#1C5DAC]/70 px-2.5 py-1 text-xs font-light text-white backdrop-blur-sm">
             📍 {proyecto.comuna ? `${proyecto.comuna}, ${proyecto.region}` : "Ubicación pendiente"}
           </span>
         </div>
@@ -68,11 +68,11 @@ const ProyectoCard = ({ proyecto, onOpen, onDelete, onToggleEstado }) => {
                 title={esListo ? "Listo · clic para volver a borrador" : "Borrador · clic para marcar como listo"}
                 onClick={handleToggleEstado}
                 disabled={cambiandoEstado || proyecto.estado === "procesando"}
-                className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-xs text-dash-text-soft transition-colors hover:text-dash-text disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-xs font-bold text-[#052B59] transition-colors hover:text-dash-text disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <span
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                    esListo ? "bg-dash-accent" : "bg-white/15"
+                  className={`relative inline-flex h-5 w-9 items-center border border-[#052B59] rounded-full transition-colors ${
+                    esListo ? "bg-[#052B59]" : "bg-[#052B59]/40"
                   }`}
                 >
                   <span
@@ -86,7 +86,7 @@ const ProyectoCard = ({ proyecto, onOpen, onDelete, onToggleEstado }) => {
 
               <button
                 onClick={handleClickDelete}
-                className="p-1.5 text-dash-text-soft hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                className="p-1.5 text-[#052B59] hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                 title="Eliminar proyecto"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -95,16 +95,16 @@ const ProyectoCard = ({ proyecto, onOpen, onDelete, onToggleEstado }) => {
               </button>
 
               {/* Flecha de navegación */}
-              <svg viewBox="0 0 16 16" className="w-4 h-4 text-dash-text-soft opacity-0 group-hover:opacity-100 transition-opacity" fill="none">
+              <svg viewBox="0 0 16 16" className="w-4 h-4 text-[#052B59] opacity-0 group-hover:opacity-100 transition-opacity" fill="none">
                 <path d="M6 3.5L10.5 8 6 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
           </div>
 
-          <h3 className="text-dash-text font-medium text-sm mb-1">{proyecto.nombre}</h3>
-          <p className="text-dash-text-soft text-sm mb-3 line-clamp-1">{proyecto.descripcion || "Sin descripción"}</p>
+          <h3 className="text-white font-medium text-sm mb-1">{proyecto.nombre}</h3>
+          <p className="text-[#052B59] text-sm mb-3 line-clamp-1">{proyecto.descripcion || "Sin descripción"}</p>
 
-          <span className="font-mono text-xs text-dash-text-soft">
+          <span className="font-mono text-xs text-white/80">
             {formatFecha(proyecto.fecha_modificacion)}
           </span>
         </div>

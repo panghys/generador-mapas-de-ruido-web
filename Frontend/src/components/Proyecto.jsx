@@ -68,9 +68,9 @@ const Proyecto = () => {
   };
 
   return (
-    <div className="relative min-h-screen w-full overflow-x-hidden bg-dash-bg font-sans">
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-[#D1DDF2] font-sans">
       {/* Fondo animado WebGL — sutil, decorativo, sin capturar interacción del mouse */}
-      <div className="pointer-events-none fixed inset-0 z-0">
+      {/* <div className="pointer-events-none fixed inset-0 z-0">
         <GradientWaves
           horizonColor="#00dfc3"
           waveColor="#000000"
@@ -92,20 +92,20 @@ const Proyecto = () => {
           grain
           grainIntensity={0.04}
         />
-      </div>
+      </div>*/}
 
       <div className="relative z-10 px-6 py-10">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-1">
-            <h1 className="text-2xl font-semibold text-dash-text">Mis proyectos</h1>
+            <h1 className="text-2xl font-semibold text-[#052B59]">Mis proyectos</h1>
             <button
               onClick={handleNuevo}
-              className="px-4 py-2 text-sm bg-dash-accent text-dash-bg font-medium rounded-lg hover:opacity-90 transition-opacity"
+              className="px-4 py-2 text-sm bg-[#1C5DAC] text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
             >
               + Nuevo proyecto
             </button>
           </div>
-          <p className="text-dash-text-soft text-sm mb-6">
+          <p className="text-[#4B5563] text-sm mb-6">
             {proyectos.length} proyectos · {listos} listo{listos !== 1 ? "s" : ""}
           </p>
 
@@ -116,8 +116,8 @@ const Proyecto = () => {
                 onClick={() => setFiltroActivo(f.valor)}
                 className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
                   filtroActivo === f.valor
-                    ? "bg-dash-accent-soft text-dash-accent"
-                    : "text-dash-text-soft hover:text-dash-text"
+                    ? "bg-[#1C5DAC] text-white"
+                    : "text-[#4B5563] hover:text-[#1C5DAC]"
                 }`}
               >
                 {f.label}
@@ -128,7 +128,7 @@ const Proyecto = () => {
           {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
 
           {cargando ? (
-            <p className="text-dash-text-soft text-sm">Cargando proyectos...</p>
+            <p className="text-[#052B59] text-sm">Cargando proyectos...</p>
           ) : (
             <ListaProyectos
               proyectos={proyectosFiltrados}

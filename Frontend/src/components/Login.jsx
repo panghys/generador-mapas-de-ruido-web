@@ -23,11 +23,28 @@ const Login = () => {
   const [nombre, setNombre] = useState("");
   const [mail, setMail] = useState("");
   const [contrasena, setContrasena] = useState("");
+  const [confirmarContrasena, setConfirmarContrasena] = useState("");
   const [error, setError] = useState(null);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError(null);
+
+    if (modoRegistro) {
+      if (!nombre.trim() || !mail.trim() || !contrasena.trim() || !confirmarContrasena.trim()) {
+        setError("Completa los datos solicitados");
+        return;
+      }
+      if (contrasena !== confirmarContrasena) {
+        setError("Las contraseñas no coinciden");
+        return;
+      }
+    } else {
+      if (!mail.trim() || !contrasena.trim()) {
+        setError("Completa los datos solicitados");
+        return;
+      }
+    }
 
     try {
       const baseUrl = obtenerBaseUrl();
@@ -72,6 +89,7 @@ const Login = () => {
   const cambiarModo = () => {
     setModoRegistro((actual) => !actual);
     setError(null);
+    setConfirmarContrasena("");
   };
 
   const handleSuccess = async (credentialResponse) => {
@@ -110,10 +128,10 @@ const Login = () => {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-dash-bg px-6 py-12 font-sans text-dash-text">
+    <main className="relative min-h-screen overflow-hidden bg-[#D1DDF2] px-6 py-12 font-sans text-dash-text">
       {/* Fondo animado en WebGL — capa a pantalla completa, detrás del recuadro de login */}
       <div className="absolute inset-0 z-0">
-        <GradientWaves
+        {/* <GradientWaves
           horizonColor="#00dfc3"
           waveColor="#000000"
           crestColor="#e8e8e8"
@@ -133,12 +151,18 @@ const Login = () => {
           parallaxStrength={0.35}
           grain
           grainIntensity={0.04}
-        />
+        />*/}
       </div>
 
-      <div className="relative z-10 mx-auto grid max-w-5xl overflow-hidden border border-dash-border bg-dash-surface md:grid-cols-[1.05fr_0.95fr]">
+      <div className="relative z-10 mx-auto grid max-w-5xl overflow-hidden border border-slate-300 rounded-lg bg-white md:grid-cols-[1.05fr_0.95fr]">
 
-        <section className="hidden flex-col justify-between bg-dash-accent p-10 text-dash-bg md:flex">
+        <section
+          className="hidden flex-col justify-between bg-cover bg-center p-10 text-white md:flex"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(5, 20, 26, 0.35), rgba(5, 20, 26, 0.35)), url("/portada.png")',
+          }}
+        >
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em]">
               NoiseMap
@@ -150,14 +174,13 @@ const Login = () => {
           </div>
 
           <p className="max-w-sm text-sm leading-6 opacity-75">
-            Organiza tus proyectos, delimita zonas de medición y prepara tus
-            próximos análisis.
+            Organiza tus proyectos, delimita zonas de medición y calcula tu propio mapa de ruido.
           </p>
         </section>
 
-        <section className="p-7 sm:p-10">
+        <section className="bg-white p-7 text-[#052B59] sm:p-10">
 
-          <p className="mb-2 text-sm font-medium uppercase tracking-[0.18em] text-dash-accent">
+          <p className="mb-2 text-sm font-medium uppercase tracking-[0.18em] text-[#1C5DAC]">
             {modoRegistro ? "Crear cuenta" : "Bienvenido"}
           </p>
 
@@ -165,13 +188,13 @@ const Login = () => {
             {modoRegistro ? "Comienza tu espacio" : "Inicia sesión"}
           </h2>
 
-          <p className="mt-2 text-sm text-dash-text-soft">
-            Usa una cuenta externa o entra con tu correo y contraseña.
+          <p className="mt-2 text-sm text-slate-600">
+            Usa una cuenta externa o ingresa con tu correo y contraseña.
           </p>
 
           <div className="mt-7 space-y-3">
 
-            <div className="flex justify-center rounded border border-dash-border bg-white p-3">
+            <div className="flex justify-center rounded border border-slate-300 bg-white p-3">
               <GoogleLogin
                 onSuccess={handleSuccess}
                 onError={() =>
@@ -187,17 +210,17 @@ const Login = () => {
                   "La conexión con Outlook se habilitará en una próxima versión."
                 )
               }
-              className="w-full border border-dash-border px-4 py-3 text-sm font-medium text-dash-text transition-colors hover:border-dash-accent"
+              className="w-full border border-slate-300 px-4 py-3 text-sm font-medium text-slate-800 transition-colors hover:border-[#1C5DAC]"
             >
               Continuar con Outlook
             </button>
 
           </div>
 
-          <div className="my-7 flex items-center gap-3 text-xs text-dash-text-soft">
-            <span className="h-px flex-1 bg-dash-border" />
+          <div className="my-7 flex items-center gap-3 text-xs text-slate-500">
+            <span className="h-px flex-1 bg-slate-200" />
             o con correo
-            <span className="h-px flex-1 bg-dash-border" />
+            <span className="h-px flex-1 bg-slate-200" />
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -207,7 +230,7 @@ const Login = () => {
                 value={nombre}
                 onChange={(event) => setNombre(event.target.value)}
                 placeholder="Nombre"
-                className="w-full border border-dash-border bg-transparent px-3 py-3 text-sm outline-none focus:border-dash-accent"
+                className="w-full border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#1C5DAC]"
               />
             )}
 
@@ -216,7 +239,7 @@ const Login = () => {
               value={mail}
               onChange={(event) => setMail(event.target.value)}
               placeholder="Correo electrónico"
-              className="w-full border border-dash-border bg-transparent px-3 py-3 text-sm outline-none focus:border-dash-accent"
+              className="w-full border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#1C5DAC]"
             />
 
             <input
@@ -224,12 +247,22 @@ const Login = () => {
               value={contrasena}
               onChange={(event) => setContrasena(event.target.value)}
               placeholder="Contraseña"
-              className="w-full border border-dash-border bg-transparent px-3 py-3 text-sm outline-none focus:border-dash-accent"
+              className="w-full border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#1C5DAC]"
             />
+
+            {modoRegistro && (
+              <input
+                type="password"
+                value={confirmarContrasena}
+                onChange={(event) => setConfirmarContrasena(event.target.value)}
+                placeholder="Confirmar contraseña"
+                className="w-full border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#1C5DAC]"
+              />
+            )}
 
             <button
               type="submit"
-              className="w-full bg-dash-accent px-4 py-3 text-sm font-semibold text-dash-bg transition-opacity hover:opacity-90"
+              className="w-full bg-[#1C5DAC] px-4 py-3 text-sm font-semibold text-white transition-opacity rounded-lg hover:opacity-90"
             >
               {modoRegistro ? "Crear cuenta" : "Iniciar sesión"}
             </button>
@@ -237,7 +270,7 @@ const Login = () => {
           </form>
 
           {error && (
-            <p className="mt-4 text-sm text-red-400">
+            <p className="mt-4 text-sm text-red-600">
               {error}
             </p>
           )}
@@ -245,7 +278,7 @@ const Login = () => {
           <button
             type="button"
             onClick={cambiarModo}
-            className="mt-6 text-sm text-dash-accent hover:underline"
+            className="mt-6 text-sm text-[#243B53] hover:underline"
           >
             {modoRegistro
               ? "Ya tengo una cuenta"

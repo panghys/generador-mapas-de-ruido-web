@@ -83,32 +83,32 @@ const CalleModal = ({
 
   const contenido = (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4">
-      <div className="max-h-[90vh] w-full max-w-sm overflow-y-auto border border-dash-border bg-[#162326] p-5 text-dash-text shadow-2xl">
+      <div className="max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-lg bg-[#052B59]/95 p-5 text-dash-text shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-sm font-semibold">{esEdicion ? "Editar calle" : "Nueva calle"}</h2>
           {!esEdicion && (
-            <span className="border border-dash-accent px-2 py-0.5 text-[10px] font-medium text-dash-accent">
+            <span className="border border-[#70adf7] px-2 py-0.5 text-[10px] font-medium text-[#70adf7]">
               Trazo pendiente de guardar
             </span>
           )}
         </div>
 
         <label className="mb-3 block text-sm">
-          <span className="mb-1 block text-xs text-dash-text-soft">Nombre</span>
+          <span className="mb-1 block text-xs text-slate-300">Nombre</span>
           <input
             type="text"
             value={nombreCalle}
             onChange={(e) => setNombreCalle(e.target.value)}
             placeholder="Ej: Av. Picarte"
-            className="w-full border border-dash-border bg-[#10191b] px-3 py-2 text-sm text-white outline-none focus:border-dash-accent"
+            className="w-full border border-slate-300 bg-white/90 px-3 py-2 text-sm text-[#4B5563] outline-none rounded-lg focus:border-[#70adf7]"
           />
         </label>
         <label className="mb-3 block text-sm">
-          <span className="mb-1 block text-xs text-dash-text-soft">Tipo de calle</span>
+          <span className="mb-1 block text-xs text-slate-300">Tipo de calle</span>
           <select
             value={tipoCalle}
             onChange={(e) => setTipoCalle(e.target.value)}
-            className="w-full border border-dash-border bg-[#10191b] px-3 py-2 text-sm text-white outline-none focus:border-dash-accent"
+            className="w-full border border-slate-300  bg-white/90 px-3 py-2 text-sm text-[#4B5563] outline-none rounded-lg focus:border-[#70adf7]"
           >
             {tiposCalle.map((tipo) => (
               <option key={tipo} value={tipo}>
@@ -118,14 +118,14 @@ const CalleModal = ({
           </select>
         </label>
 
-        <p className="mb-2 text-xs text-dash-text-soft">Color</p>
+        <p className="mb-2 text-xs text-slate-300">Color</p>
         <div className="mb-4 flex flex-wrap gap-2">
           {colores.map((color) => (
             <button
               key={color}
               type="button"
               onClick={() => setColorCalle(color)}
-              className="h-7 w-7 border-2"
+              className="h-7 w-7 border-2 rounded-full"
               style={{
                 backgroundColor: color,
                 borderColor: colorCalle === color ? "#ffffff" : "#555555",
@@ -145,7 +145,7 @@ const CalleModal = ({
               inputMode="numeric"
               value={pequenos}
               onChange={(e) => cambiarNumero(e, setPequenos)}
-              className="w-20 border border-dash-border bg-[#10191b] px-2 py-1 text-right text-white outline-none focus:border-dash-accent"
+              className="w-20 border border-dash-border bg-white/90 px-2 py-1 text-right text-[#4B5563] rounded-xl outline-none focus:border-[#70adf7]"
             />
           </label>
 
@@ -156,7 +156,7 @@ const CalleModal = ({
               inputMode="numeric"
               value={medianos}
               onChange={(e) => cambiarNumero(e, setMedianos)}
-              className="w-20 border border-dash-border bg-[#10191b] px-2 py-1 text-right text-white outline-none focus:border-dash-accent"
+              className="w-20 border border-dash-border bg-white/90 px-2 py-1 text-right text-[#4B5563] rounded-xl outline-none focus:border-[#70adf7]"
             />
           </label>
 
@@ -167,28 +167,28 @@ const CalleModal = ({
               inputMode="numeric"
               value={grandes}
               onChange={(e) => cambiarNumero(e, setGrandes)}
-              className="w-20 border border-dash-border bg-[#10191b] px-2 py-1 text-right text-white outline-none focus:border-dash-accent"
+              className="w-20 border border-dash-border bg-white/90 px-2 py-1 text-right text-[#4B5563] rounded-xl outline-none focus:border-[#70adf7]"
             />
           </label>
         </div>
 
         <label className="mb-3 block text-sm">
-          <span className="mb-1 block text-xs text-dash-text-soft">Velocidad promedio (km/h)</span>
+          <span className="mb-1 block text-xs text-slate-300">Velocidad promedio (km/h)</span>
           <input
             type="number"
             min="1"
             value={velocidad}
             onChange={(e) => setVelocidad(Math.max(1, Number(e.target.value) || 1))}
-            className="w-full border border-dash-border bg-[#10191b] px-3 py-2 text-sm text-white outline-none focus:border-dash-accent"
+            className="w-full border border-dash-border bg-white/90 px-3 py-2 text-sm text-[#4B5563] outline-none rounded-lg focus:border-[#70adf7]"
           />
         </label>
 
         <label className="mb-4 block text-sm">
-          <span className="mb-1 block text-xs text-dash-text-soft">Tipo de superficie</span>
+          <span className="mb-1 block text-xs text-slate-300">Tipo de superficie</span>
           <select
             value={tipoSuperficie}
             onChange={(e) => setTipoSuperficie(e.target.value)}
-            className="w-full border border-dash-border bg-[#10191b] px-3 py-2 text-sm text-white outline-none focus:border-dash-accent"
+            className="w-full border border-dash-border bg-white/90 px-3 py-2 text-sm text-[#4B5563] outline-none rounded-lg focus:border-[#70adf7]"
           >
             <option value="asfalto_no_ranurado">Asfalto no ranurado</option>
             <option value="concreto_asfalto_rasurado">Concreto ranurado</option>
@@ -212,14 +212,14 @@ const CalleModal = ({
           <button
             type="button"
             onClick={handleGuardar}
-            className="flex-1 bg-dash-accent px-3 py-2 text-sm font-semibold text-dash-bg hover:opacity-90"
+            className="flex-1 bg-[#70adf7] px-3 py-2 text-sm font-semibold rounded-lg text-[#052B59] hover:opacity-90"
           >
             {esEdicion ? "Actualizar datos" : "Guardar calle"}
           </button>
           <button
             type="button"
             onClick={onCancelar}
-            className="flex-1 border border-dash-border px-3 py-2 text-sm font-semibold text-dash-text hover:bg-[#1d2c2f]"
+            className="flex-1 border border-slate-300/30 px-3 py-2 text-sm font-semibold rounded-lg text-dash-text hover:bg-[#70adf7]/10"
           >
             Cancelar
           </button>
@@ -229,7 +229,7 @@ const CalleModal = ({
           <button
             type="button"
             onClick={onEliminar}
-            className="mt-3 w-full border border-red-500 px-3 py-2 text-sm font-semibold text-red-400 hover:bg-red-500/10"
+            className="mt-3 w-full border border-red-500 px-3 py-2 text-sm font-semibold rounded-lg text-red-400 hover:bg-red-500/10"
           >
             Eliminar calle
           </button>

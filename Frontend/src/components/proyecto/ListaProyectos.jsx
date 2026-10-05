@@ -4,9 +4,9 @@ import ProyectoCard from "./ProyectoCard";
 const ListaProyectos = ({ proyectos, onOpen, onDelete, onToggleEstado }) => {
   if (proyectos.length === 0) {
     return (
-      <div className="border border-dash-border rounded-xl py-16 flex flex-col items-center justify-center text-center">
-        <p className="text-dash-text font-medium mb-1">No hay proyectos en este filtro</p>
-        <p className="text-dash-text-soft text-sm">Prueba con otro filtro o crea un proyecto nuevo.</p>
+      <div className="border border-[#052B59] rounded-xl py-16 flex flex-col items-center justify-center text-center">
+        <p className="text-[#052B59] font-medium mb-1">No existen proyectos todavía</p>
+        <p className="text-[#4B5563] text-sm">Crea un proyecto nuevo</p>
       </div>
     );
   }

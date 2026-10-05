@@ -50,7 +50,7 @@ const UserMenu = () => {
       <button
         type="button"
         onClick={() => setAbierto((actual) => !actual)}
-        className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-700 bg-dash-surface text-dash-text-soft outline-none transition-colors hover:border-dash-accent hover:text-dash-accent focus-visible:ring-2 focus-visible:ring-dash-accent"
+        className="flex h-11 w-11 items-center justify-center rounded-full border border-[#052B59] bg-[#052B59] text-white outline-none transition-colors hover:border-[#70adf7] hover:text-[#70adf7] focus-visible:ring-2 focus-visible:ring-[#70adf7]"
         aria-haspopup="true"
         aria-expanded={abierto}
         title={nombre}
@@ -66,7 +66,7 @@ const UserMenu = () => {
       </button>
 
       {abierto && (
-        <div className="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-slate-800 bg-slate-900 p-2 shadow-2xl">
+        <div className="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-slate-800 bg-[#052B59] p-2 shadow-2xl">
           <div className="px-3 py-2">
             <p className="truncate text-sm font-semibold text-white">{nombre}</p>
             {correo && <p className="truncate text-xs text-slate-400">{correo}</p>}

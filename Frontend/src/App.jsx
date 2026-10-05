@@ -33,7 +33,7 @@ const AppRoutes = () => {
 
 const App = () => {
   return (
-    <div className="bg-primary overflow-hidden">
+    <div className="bg-[#1C5DAC] overflow-hidden">
       <Router>
         <AppRoutes />
       </Router>

@@ -2,8 +2,8 @@
 const config = {
   borrador: {
     label: "Borrador",
-    text: "text-dash-text-soft",
-    bg: "bg-white/5",
+    text: "text-[#1C5DAC]",
+    bg: "bg-white/40",
     icon: (
       <svg viewBox="0 0 16 16" className="w-3 h-3" fill="none">
         <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.3" />
@@ -23,8 +23,8 @@ const config = {
   },
   listo: {
     label: "Listo",
-    text: "text-dash-accent",
-    bg: "bg-dash-accent-soft",
+    text: "text-white",
+    bg: "bg-[#70adf7]/80",
     icon: (
       <svg viewBox="0 0 16 16" className="w-3 h-3" fill="none">
         <path d="M3.5 8.5l3 3 6-7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />

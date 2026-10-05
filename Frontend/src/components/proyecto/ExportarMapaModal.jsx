@@ -26,7 +26,7 @@ const ExportarMapaModal = ({ vista, descargando, error, onDescargar, onCerrar })
         role="dialog"
         aria-modal="true"
         aria-label="Vista previa de la exportación"
-        className="flex max-h-[92vh] w-full max-w-3xl flex-col border border-dash-border bg-[#162326] p-5 text-dash-text shadow-2xl"
+        className="flex max-h-[92vh] w-full max-w-3xl flex-col  bg-[#052B59]/90 p-5 rounded-lg text-dash-text shadow-2xl"
         onClick={(evento) => evento.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
@@ -41,7 +41,7 @@ const ExportarMapaModal = ({ vista, descargando, error, onDescargar, onCerrar })
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-auto border border-dash-border bg-white">
+        <div className="min-h-0 flex-1 overflow-auto  bg-white rounded-lg">
           <img
             src={vista.url}
             alt="Mapa de ruido exportado"
@@ -58,14 +58,14 @@ const ExportarMapaModal = ({ vista, descargando, error, onDescargar, onCerrar })
             type="button"
             onClick={onDescargar}
             disabled={descargando}
-            className="flex-1 bg-dash-accent px-3 py-2 text-sm font-semibold text-dash-bg hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex-1 bg-[#70adf7] px-3 py-2 text-sm font-semibold rounded-lg text-[#052B59] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {descargando ? "Descargando…" : "Descargar PNG"}
           </button>
           <button
             type="button"
             onClick={onCerrar}
-            className="flex-1 border border-dash-border px-3 py-2 text-sm font-semibold text-dash-text hover:bg-[#1d2c2f]"
+            className="flex-1 border border-slate-300/30  px-3 py-2 text-sm font-semibold rounded-lg text-dash-text hover:bg-[#70adf7]/10"
           >
             Volver
           </button>
