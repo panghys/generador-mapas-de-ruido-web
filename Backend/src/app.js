@@ -25,16 +25,36 @@ app.use("/api", (req, res, next) => {
 // Lista blanca que permite tanto producción como tus pruebas en local
 const allowedOrigins = [
   process.env.ORIGIN,
-  "http://localhost:3003",
-  "http://localhost:5173",
-  "http://localhost:3000",
+  "http://grupo3.146.83.216.166.nip.io",
+  "http://grupo3.146.83.216.166.nip.io/",
 ].filter(Boolean);
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      try {
+        const url = new URL(origin);
+        const hostname = url.hostname;
+        if (
+          allowedOrigins.includes(origin) ||
+          hostname === "localhost" ||
+          hostname === "127.0.0.1" ||
+          hostname.startsWith("192.168.") ||
+          hostname.startsWith("10.") ||
+          hostname.startsWith("172.")
+        ) {
+          return callback(null, true);
+        }
+      } catch (e) {}
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: false,
   })
 );
 
