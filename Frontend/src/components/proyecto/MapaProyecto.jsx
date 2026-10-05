@@ -679,72 +679,84 @@ const MapaProyecto = () => {
     setter(valor === "" ? 0 : Number(valor));
   };
 
-  const buscarUbicacion = async () => {
+const MENSAJE_FORMATO = "Formato inválido. Usa \"Ciudad, País\" (ej: Valdivia, Chile) o \"Latitud, Longitud\" (ej: -39.81, -73.24).";
+
+const esFormatoCiudadPais = (texto) => {
+    const partes = texto.split(",").map((p) => p.trim());
+    return partes.length === 2 && partes.every((p) => p.length > 0 && /\p{L}/u.test(p));
+};
+
+const buscarUbicacion = async () => {
     const texto = coordenadas.trim();
     if (!texto || buscando) return;
 
     const resultado = parsearComoCoordenadas(texto);
 
     if (resultado?.fueraDeRango) {
-      setErrorBusqueda("Coordenadas fuera de rango. La latitud debe estar entre -90 y 90, y la longitud entre -180 y 180.");
-      return;
+        setErrorBusqueda("Coordenadas fuera de rango. La latitud debe estar entre -90 y 90, y la longitud entre -180 y 180.");
+        return;
     }
 
     if (resultado) {
-      setErrorBusqueda("");
-      mapInstance.current?.flyTo([resultado.lat, resultado.lng], 13);
-      return;
+        setErrorBusqueda("");
+        mapInstance.current?.flyTo([resultado.lat, resultado.lng], 13);
+        return;
+    }
+
+    if (!esFormatoCiudadPais(texto)) {
+        setErrorBusqueda(MENSAJE_FORMATO);
+        return;
     }
 
     setBuscando(true);
     setErrorBusqueda("");
 
     try {
-      const respuesta = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(texto)}`
-      );
+        const respuesta = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(texto)}`
+        );
 
-      if (!respuesta.ok) {
-        throw new Error("network");
-      }
-
-      const resultados = await respuesta.json();
-
-      if (!resultados.length) {
-        setErrorBusqueda("No se encontró esa ciudad, país o lugar. Verifica el nombre e intenta de nuevo.");
-        return;
-      }
-
-      const { lat, lon, boundingbox } = resultados[0];
-
-      let esAreaGrande = false;
-
-      if (Array.isArray(boundingbox) && boundingbox.length === 4) {
-        const [south, north, west, east] = boundingbox.map(Number);
-        const alturaGrados = Math.abs(north - south);
-        const anchoGrados = Math.abs(east - west);
-
-        if (Math.max(alturaGrados, anchoGrados) > 2) {
-          esAreaGrande = true;
-          mapInstance.current?.flyToBounds(
-            [
-              [south, west],
-              [north, east],
-            ],
-            { padding: [40, 40], duration: 1 }
-          );
+        if (!respuesta.ok) {
+            throw new Error("network");
         }
-      }
 
-      if (!esAreaGrande) {
-        mapInstance.current?.flyTo([Number(lat), Number(lon)], 13);
-      }
+        const resultados = await respuesta.json();
+
+        if (!resultados.length) {
+            setErrorBusqueda("No se encontró esa ciudad o país. Verifica el nombre e intenta de nuevo.");
+            return;
+        }
+
+        const { lat, lon, boundingbox } = resultados[0];
+
+        let esAreaGrande = false;
+
+        if (Array.isArray(boundingbox) && boundingbox.length === 4) {
+            const [south, north, west, east] = boundingbox.map(Number);
+            const alturaGrados = Math.abs(north - south);
+            const anchoGrados = Math.abs(east - west);
+
+            if (Math.max(alturaGrados, anchoGrados) > 2) {
+                esAreaGrande = true;
+                mapInstance.current?.flyToBounds(
+                    [
+                        [south, west],
+                        [north, east],
+                    ],
+                    { padding: [40, 40], duration: 1 }
+                );
+            }
+        }
+
+        if (!esAreaGrande) {
+            mapInstance.current?.flyTo([Number(lat), Number(lon)], 13);
+        }
     } catch (err) {
-      setErrorBusqueda("No se pudo conectar con el servicio de búsqueda. Intenta nuevamente.");
+        setErrorBusqueda("No se pudo conectar con el servicio de búsqueda. Intenta nuevamente.");
     } finally {
-      setBuscando(false);
+        setBuscando(false);
     }
-  };
+};
 
   if (cargandoProyecto) {
     return (
