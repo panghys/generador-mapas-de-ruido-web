@@ -1,4 +1,6 @@
 import { Project } from "../models/Project.js";
+import { Street } from "../models/Street.js";
+import { sequelize } from "../database/database.js";
 
 export async function getProjectsByUser_(usuarioId) {
   try {
@@ -32,8 +34,13 @@ export async function updateProject_(id, usuarioId, cambios) {
     const project = await Project.findOne({ where: { id, usuario_id: usuarioId } });
     if (!project) throw new Error("Proyecto no encontrado");
 
-    Object.assign(project, cambios, { fecha_modificacion: new Date() });
-    await project.save();
+    await sequelize.transaction(async (transaction) => {
+      if (cambios.zona === null) {
+        await Street.destroy({ where: { proyecto_id: project.id }, transaction });
+      }
+      Object.assign(project, cambios, { fecha_modificacion: new Date() });
+      await project.save({ transaction });
+    });
     return project;
   } catch (error) {
     throw new Error(error.message || "No se pudo actualizar el proyecto");

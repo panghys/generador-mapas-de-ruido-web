@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import clientAxios from '../config/clienteAxios';
+import MensajeModal from '../proyecto/MensajeModal';
 
 
 const Formulario = () => {
@@ -7,6 +8,7 @@ const Formulario = () => {
   const [nombre, setNombre] = useState('');
   const [fecha, setFecha] = useState('');
   const [descripcion, setDescripcion] = useState('');
+  const [mensaje, setMensaje] = useState(null);
 
   const [usuarios, setUsuarios] = useState('');
   useEffect(() => {
@@ -32,7 +34,8 @@ const Formulario = () => {
                 
          })
     } catch (error) {
-        console.log(error);
+        setMensaje(error.response?.data?.error || 'No se pudo registrar el paper. Intenta nuevamente.');
+        return;
     }
     window.location.reload();
 
@@ -100,6 +103,12 @@ const Formulario = () => {
           Enviar
         </button>
       </form>
+      <MensajeModal
+        abierto={mensaje !== null}
+        titulo="No se pudo registrar"
+        mensaje={mensaje}
+        onCerrar={() => setMensaje(null)}
+      />
     </div>
   );
     

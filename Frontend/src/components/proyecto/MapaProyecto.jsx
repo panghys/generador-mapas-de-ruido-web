@@ -12,6 +12,7 @@ import InstruccionesMapaModal from "./InstruccionesMapaModal";
 import { NIVELES_RUIDO, obtenerColorRuido } from "./nivelesRuido";
 import CapaRuidoRaster from "./CapaRuidoRaster";
 import ExportarMapaModal from "./ExportarMapaModal";
+import MensajeModal from "./MensajeModal";
 import { crearUrlVistaPrevia, descargarMapaRuido, generarMapaRuido } from "./exportarMapaRuido";
 import { obtenerNivelEmisionCalle } from "./ruidoPropagacion";
 import { calcularRuidoLocal } from "./ruidoLocal";
@@ -229,6 +230,7 @@ const MapaProyecto = () => {
 
   const [parametroTest, setParametroTest] = useState(0);
   const [instruccionesAbiertas, setInstruccionesAbiertas] = useState(false);
+  const [mensajeModal, setMensajeModal] = useState(null);
 
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
@@ -440,14 +442,20 @@ const MapaProyecto = () => {
 
         if (!proyecto.zona) {
           layer.remove();
-          window.alert("Primero debes delimitar la zona del proyecto antes de trazar calles.");
+          setMensajeModal({
+            titulo: "Falta la zona",
+            mensaje: "Primero debes delimitar la zona del proyecto antes de trazar calles.",
+          });
           setDelimitando(null);
           return;
         }
 
         if (!calleEstaDentroDeZona(trazo, proyecto.zona)) {
           layer.remove();
-          window.alert("La calle debe estar dentro del perímetro delimitado del proyecto.");
+          setMensajeModal({
+            titulo: "Calle fuera de la zona",
+            mensaje: "La calle debe estar dentro del perímetro delimitado del proyecto.",
+          });
           setDelimitando(null);
           return;
         }
@@ -531,10 +539,26 @@ const MapaProyecto = () => {
       await clientAxios.put(`/proyectos/${proyectoId}`, { zona: null });
       mapInstance.current.removeLayer(zonaLayerRef.current);
       zonaLayerRef.current = null;
+      callesRef.current.forEach((calle) => mapInstance.current.removeLayer(calle.layer));
+      quitarResaltadoCalle();
+      setCalles([]);
       setProyecto((actual) => ({ ...actual, zona: null }));
     } catch (err) {
-      // no se pudo borrar; se deja como está
+      setMensajeModal({
+        titulo: "No se pudo borrar la zona",
+        mensaje: err.response?.data?.error || "Ocurrió un error al borrar la zona. Intenta nuevamente.",
+      });
     }
+  };
+
+  const pedirBorrarZona = () => {
+    if (!zonaLayerRef.current) return;
+    setMensajeModal({
+      titulo: "Borrar zona",
+      mensaje: "Borrar la zona borrará todas las calles, ¿continuar?",
+      textoConfirmar: "Borrar zona",
+      onConfirmar: borrarZona,
+    });
   };
 
   const centrarEnZona = () => {
@@ -906,7 +930,7 @@ const buscarUbicacion = async () => {
                     Editar
                   </button>
                   <button
-                    onClick={borrarZona}
+                    onClick={pedirBorrarZona}
                     disabled={modoOcupado}
                     className="flex-1 border border-red-500 px-2 py-2 text-sm font-semibold rounded-lg text-red-400 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
                   >
@@ -1074,6 +1098,15 @@ const buscarUbicacion = async () => {
       <InstruccionesMapaModal
         abierto={instruccionesAbiertas}
         onCerrar={() => setInstruccionesAbiertas(false)}
+      />
+
+      <MensajeModal
+        abierto={mensajeModal !== null}
+        titulo={mensajeModal?.titulo}
+        mensaje={mensajeModal?.mensaje}
+        textoConfirmar={mensajeModal?.textoConfirmar}
+        onConfirmar={mensajeModal?.onConfirmar}
+        onCerrar={() => setMensajeModal(null)}
       />
     </main>
   );

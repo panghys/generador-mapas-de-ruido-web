@@ -120,18 +120,6 @@ const CalleModal = ({
 
         <p className="mb-2 text-xs text-slate-300">Color</p>
         <div className="mb-4 flex flex-wrap gap-2">
-          {colores.map((color) => (
-            <button
-              key={color}
-              type="button"
-              onClick={() => setColorCalle(color)}
-              className="h-7 w-7 border-2 rounded-full"
-              style={{
-                backgroundColor: color,
-                borderColor: colorCalle === color ? "#ffffff" : "#555555",
-              }}
-            />
-          ))}
         </div>
 
         <p className="mb-2 text-xs text-dash-text-soft">

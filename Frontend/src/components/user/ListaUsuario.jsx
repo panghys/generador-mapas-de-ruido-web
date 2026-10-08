@@ -11,8 +11,6 @@ function ListaUsuarios() {
             setUsuario(res.data.data);
           };
           fetchPosts();
-
-          console.log(usuarios)
     }, [])
     return (
         <div className="w-1/2 bg-gray-100 p-4">
