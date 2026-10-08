@@ -817,7 +817,9 @@ const buscarUbicacion = async () => {
             <span className="text-xs text-[#4B5563]">Mapa con OpenStreetMap</span>
           </div>
 
-          <h1 className="text-3xl font-semibold">{proyecto.nombre}</h1>
+          <h1 className="max-w-full break-words text-3xl font-semibold leading-tight [overflow-wrap:anywhere]">
+            {proyecto.nombre}
+          </h1>
 
           {(proyecto.comuna || proyecto.region) && (
             <p className="mt-2 text-sm text-[#4B5563]">
