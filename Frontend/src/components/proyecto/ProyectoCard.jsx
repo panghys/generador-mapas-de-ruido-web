@@ -2,6 +2,7 @@
 import { useState } from "react";
 import EstadoBadge from "./EstadoBadge";
 import DeleteConfirmModal from "./DeleteConfirmModal";
+import DescripcionProyectoModal from "./DescripcionProyectoModal";
 import MiniMapaPreview from "./MiniMapaPreview";
 
 const formatFecha = (fecha) =>
@@ -9,6 +10,7 @@ const formatFecha = (fecha) =>
 
 const ProyectoCard = ({ proyecto, onOpen, onDelete, onToggleEstado }) => {
   const [modalEliminacionAbierto, setModalEliminacionAbierto] = useState(false);
+  const [modalDescripcionAbierto, setModalDescripcionAbierto] = useState(false);
   const [eliminando, setEliminando] = useState(false);
   const [cambiandoEstado, setCambiandoEstado] = useState(false);
 
@@ -103,6 +105,18 @@ const ProyectoCard = ({ proyecto, onOpen, onDelete, onToggleEstado }) => {
 
           <h3 className="text-white font-medium text-sm mb-1">{proyecto.nombre}</h3>
           <p className="text-[#052B59] text-sm mb-3 line-clamp-1">{proyecto.descripcion || "Sin descripción"}</p>
+          {proyecto.descripcion && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setModalDescripcionAbierto(true);
+              }}
+              className="mb-3 block text-xs font-medium text-white underline underline-offset-2 hover:text-white/80"
+            >
+              Ver descripción
+            </button>
+          )}
 
           <span className="font-mono text-xs text-white/80">
             {formatFecha(proyecto.fecha_modificacion)}
@@ -110,6 +124,12 @@ const ProyectoCard = ({ proyecto, onOpen, onDelete, onToggleEstado }) => {
         </div>
       </div>
 
+      {modalDescripcionAbierto && (
+        <DescripcionProyectoModal
+          proyecto={proyecto}
+          onClose={() => setModalDescripcionAbierto(false)}
+        />
+      )}
 
       {modalEliminacionAbierto && (
         <DeleteConfirmModal

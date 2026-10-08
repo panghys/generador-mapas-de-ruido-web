@@ -19,8 +19,8 @@ const DeleteConfirmModal = ({ proyecto, onConfirm, onCancel, isLoading }) => {
           ¿Estás seguro de que deseas eliminar el proyecto
         </p>
 
-        <p className="text-[#1C5DAC] font-medium text-center mb-4">
-          "{proyecto.nombre}"
+        <p className="text-[#1C5DAC] font-medium text-center mb-4 break-words">
+          &quot;{proyecto.nombre}&quot;
         </p>
 
         <div className="bg-red-500/5 border border-red-600/70 rounded-lg p-3 mb-6">
