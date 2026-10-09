@@ -629,8 +629,13 @@ const MapaProyecto = () => {
         );
 
         const nivelRuido = data.data.nivelRuidoCalculado;
+        // Asignación automática basada únicamente en el nivel de ruido
+        const colorAutomatico = nivelRuido > 0 
+          ? obtenerColorRuido(nivelRuido).color 
+          : "#FF0000";
+
         modalDatosIniciales.layer.setStyle({
-          color: nivelRuido > 0 ? obtenerColorRuido(nivelRuido).color : datos.color_asignado,
+          color: colorAutomatico,
           weight: PESO_CALLE,
         });
         quitarResaltadoCalle();
@@ -647,8 +652,13 @@ const MapaProyecto = () => {
         });
 
         const nivelRuido = data.data.nivelRuidoCalculado;
+        // Asignación automática basada únicamente en el nivel de ruido
+        const colorAutomatico = nivelRuido > 0 
+          ? obtenerColorRuido(nivelRuido).color 
+          : "#FF0000";
+
         layer.setStyle({
-          color: nivelRuido > 0 ? obtenerColorRuido(nivelRuido).color : datos.color_asignado,
+          color: colorAutomatico,
           weight: PESO_CALLE,
           dashArray: null,
           opacity: 1,
@@ -669,7 +679,6 @@ const MapaProyecto = () => {
       );
     }
   };
-
   const cancelarModalCalle = () => {
     if (!modalDatosIniciales) {
       cancelarTrazoPendiente();
