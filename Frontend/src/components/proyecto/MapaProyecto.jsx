@@ -935,7 +935,7 @@ const buscarUbicacion = async () => {
                 <button
                   onClick={() => setDelimitando((actual) => (actual === "area" ? null : "area"))}
                   disabled={modoOcupado && delimitando !== "area"}
-                  className={`w-full px-4 py-2.5 text-sm font-semibold transition-colors ${
+                  className={`w-full px-4 py-2.5 text-sm font-semibold rounded-lg transition-colors ${
                     delimitando === "area"
                       ? "bg-[#154682] text-[#70adf7] ring-2 ring-[#70adf7] rounded-lg"
                       : "bg-[#1C5DAC] text-white hover:opacity-90"
