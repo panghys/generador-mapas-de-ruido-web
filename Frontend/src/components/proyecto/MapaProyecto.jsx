@@ -551,6 +551,20 @@ const MapaProyecto = () => {
     }
   };
 
+  const pedirBorrarMarcador = (marcador) => {
+    setMensajeModal({
+      titulo: "Eliminar marcador",
+      mensaje: "¿Deseas eliminar este marcador del mapa?",
+      textoConfirmar: "Eliminar marcador",
+      onConfirmar: () => {
+        if (mapInstance.current?.hasLayer(marcador.layer)) {
+          mapInstance.current.removeLayer(marcador.layer);
+        }
+        setMarcadores((actuales) => actuales.filter((actual) => actual !== marcador));
+      },
+    });
+  };
+
   const pedirBorrarZona = () => {
     if (!zonaLayerRef.current) return;
     setMensajeModal({
@@ -1040,6 +1054,43 @@ const buscarUbicacion = async () => {
                 </label>
               </div>
             )}
+
+            <div className="border border-slate-300 bg-white/70 p-3 rounded-lg">
+              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#052B59]">
+                Marcadores ({marcadores.length})
+              </h2>
+              {marcadores.length === 0 ? (
+                <p className="text-xs text-[#4B5563]">Aún no hay marcadores.</p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {marcadores.map((marcador, indice) => {
+                    const posicion = marcador.layer.getLatLng();
+                    return (
+                      <li
+                        key={indice}
+                        className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white p-2"
+                      >
+                        <span className="min-w-0 break-words text-xs text-[#243B53]">
+                          Marcador {indice + 1}
+                          <br />
+                          {posicion.lat.toFixed(4)}, {posicion.lng.toFixed(4)}
+                          <br />
+                          Test: {marcador.parametroTest}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => pedirBorrarMarcador(marcador)}
+                          className="shrink-0 rounded px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
+                          aria-label={`Eliminar marcador ${indice + 1}`}
+                        >
+                          Borrar
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
 
             <div className="border border-slate-300 bg-white/70 p-3 rounded-lg">
               <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#154682]">
