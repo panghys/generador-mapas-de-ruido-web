@@ -6,6 +6,9 @@ import {
   getProject,
   updateProject,
   deleteProject,
+  getCollaborators,
+  addCollaborator,
+  removeCollaborator,
 } from "../controllers/project.controller.js";
 import streetRoutes from "./street.routes.js";
 
@@ -20,7 +23,12 @@ router.get("/:id", getProject);
 router.put("/:id", updateProject);
 router.delete("/:id", deleteProject);
 
-// Rutas de calles, anidadas bajo un proyecto: /api/proyectos/:proyectoId/calles
+// Gestión de colaboradores
+router.get("/:id/colaboradores", getCollaborators);
+router.post("/:id/colaboradores", addCollaborator);
+router.delete("/:id/colaboradores/:userId", removeCollaborator);
+
+// Rutas de calles anidadas: /api/proyectos/:proyectoId/calles
 router.use("/:proyectoId/calles", streetRoutes);
 
 export default router;

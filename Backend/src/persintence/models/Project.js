@@ -1,6 +1,7 @@
 import { DataTypes } from "sequelize";
 import { sequelize } from "../database/database.js";
 import { User } from "./User.js";
+import { ProjectCollaborator } from "./ProjectCollaborator.js";
 
 export const Project = sequelize.define(
   "projects",
@@ -35,7 +36,6 @@ export const Project = sequelize.define(
       defaultValue: DataTypes.NOW,
     },
     zona: {
-      // GeoJSON Polygon: { type: "Polygon", coordinates: [[[lng, lat], ...]] }
       type: DataTypes.JSON,
       allowNull: true,
     },
@@ -45,6 +45,25 @@ export const Project = sequelize.define(
   }
 );
 
-// Relación: un usuario tiene muchos proyectos, un proyecto pertenece a un usuario
+// Relación directa de propietario
 User.hasMany(Project, { foreignKey: "usuario_id", as: "proyectos" });
-Project.belongsTo(User, { foreignKey: "usuario_id", as: "usuario" });
+Project.belongsTo(User, { foreignKey: "usuario_id", as: "propietario" });
+
+// Relación muchos-a-muchos para colaboradores
+Project.belongsToMany(User, {
+  through: ProjectCollaborator,
+  foreignKey: "proyecto_id",
+  otherKey: "usuario_id",
+  as: "colaboradores",
+});
+
+User.belongsToMany(Project, {
+  through: ProjectCollaborator,
+  foreignKey: "usuario_id",
+  otherKey: "proyecto_id",
+  as: "proyectosColaborativos",
+});
+
+Project.hasMany(ProjectCollaborator, { foreignKey: "proyecto_id", as: "membresias" });
+ProjectCollaborator.belongsTo(Project, { foreignKey: "proyecto_id" });
+ProjectCollaborator.belongsTo(User, { foreignKey: "usuario_id", as: "usuario" });

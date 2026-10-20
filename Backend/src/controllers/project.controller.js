@@ -69,3 +69,39 @@ export function deleteProject(req, res) {
     (error) => res.status(400).json({ status: false, error: error.message })
   );
 }
+
+import {
+  getCollaborators_,
+  addCollaboratorByEmail_,
+  removeCollaborator_,
+} from "../persintence/repository/project.repository.js";
+
+export function getCollaborators(req, res) {
+  const { id } = req.params;
+  getCollaborators_(id, req.user.id).then(
+    (data) => res.status(200).json({ status: true, data }),
+    (error) => res.status(400).json({ status: false, error: error.message })
+  );
+}
+
+export function addCollaborator(req, res) {
+  const { id } = req.params;
+  const { mail, rol } = req.body;
+
+  if (!mail) {
+    return res.status(400).json({ status: false, error: "El correo es requerido" });
+  }
+
+  addCollaboratorByEmail_(id, req.user.id, mail, rol || "editor").then(
+    (data) => res.status(201).json({ status: true, data, msg: "Colaborador agregado exitosamente" }),
+    (error) => res.status(400).json({ status: false, error: error.message })
+  );
+}
+
+export function removeCollaborator(req, res) {
+  const { id, userId } = req.params;
+  removeCollaborator_(id, req.user.id, userId).then(
+    (msg) => res.status(200).json({ status: true, msg }),
+    (error) => res.status(400).json({ status: false, error: error.message })
+  );
+}
