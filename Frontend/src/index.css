@@ -4,3 +4,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.marcador-hover {
+    filter: drop-shadow(0 0 6px #facc15) drop-shadow(0 0 3px #facc15) brightness(1.15);
+}
+
+.tooltip-hover-mapa {
+    font-weight: 600;
+    color: #052b59;
+    border: 1px solid #052b59;
+}

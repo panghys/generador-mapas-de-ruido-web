@@ -239,6 +239,9 @@ const MapaProyecto = () => {
   const superficieRuidoRef = useRef(null);
 
   const modoOcupadoRef = useRef(false);
+  const marcadoresRef = useRef([]);
+  const hoverHaloRef = useRef(null);
+  const hoverTooltipRef = useRef(null);
   const callesRef = useRef([]);
 
   const modoOcupado =
@@ -370,6 +373,7 @@ const MapaProyecto = () => {
 
           const calleObj = { ...calleDb, nivelRuidoCalculado: nivelRuido, layer };
           layer.on("click", () => abrirModalParaEditarPorId(calleObj.id));
+          registrarHoverCalle(layer, calleObj.id);
           return calleObj;
         });
 
@@ -476,6 +480,7 @@ const MapaProyecto = () => {
 
       if (e.shape === "Marker") {
         const marcador = e.layer;
+        registrarHoverMarcador(marcador);
         setMarcadores((actuales) => [...actuales, { layer: marcador, parametroTest }]);
       }
 
@@ -557,6 +562,7 @@ const MapaProyecto = () => {
       mensaje: "¿Deseas eliminar este marcador del mapa?",
       textoConfirmar: "Eliminar marcador",
       onConfirmar: () => {
+        quitarHover();
         if (mapInstance.current?.hasLayer(marcador.layer)) {
           mapInstance.current.removeLayer(marcador.layer);
         }
@@ -581,6 +587,74 @@ const MapaProyecto = () => {
       padding: [40, 40],
       duration: 1,
     });
+  };
+
+  useEffect(() => {
+    marcadoresRef.current = marcadores;
+  }, [marcadores]);
+
+  const quitarHover = () => {
+    const map = mapInstance.current;
+    if (hoverHaloRef.current && map) map.removeLayer(hoverHaloRef.current);
+    hoverHaloRef.current = null;
+    if (hoverTooltipRef.current && map) map.removeLayer(hoverTooltipRef.current);
+    hoverTooltipRef.current = null;
+    document
+      .querySelectorAll(".marcador-hover")
+      .forEach((el) => el.classList.remove("marcador-hover"));
+  };
+
+  const mostrarTooltipHover = (latlng, texto) => {
+    const map = mapInstance.current;
+    if (!map) return;
+    if (!hoverTooltipRef.current) {
+      hoverTooltipRef.current = L.tooltip({
+        direction: "top",
+        offset: [0, -8],
+        opacity: 0.95,
+        className: "tooltip-hover-mapa",
+      })
+        .setLatLng(latlng)
+        .setContent(texto)
+        .addTo(map);
+    } else {
+      hoverTooltipRef.current.setLatLng(latlng).setContent(texto);
+    }
+  };
+
+  const registrarHoverCalle = (layer, calleId) => {
+    layer.on("mouseover", (e) => {
+      const map = mapInstance.current;
+      if (!map || modoOcupadoRef.current) return;
+      quitarHover();
+      hoverHaloRef.current = L.polyline(layer.getLatLngs(), {
+        pane: PANE_CALLES,
+        color: "#facc15",
+        weight: 14,
+        opacity: 0.85,
+        lineCap: "round",
+        lineJoin: "round",
+        interactive: false,
+      }).addTo(map);
+      hoverHaloRef.current.bringToBack();
+      const calle = callesRef.current.find((c) => c.id === calleId);
+      mostrarTooltipHover(e.latlng, calle?.nombre_calle || "Calle sin nombre");
+    });
+    layer.on("mousemove", (e) => {
+      if (hoverTooltipRef.current) hoverTooltipRef.current.setLatLng(e.latlng);
+    });
+    layer.on("mouseout", quitarHover);
+  };
+
+  const registrarHoverMarcador = (marcador) => {
+    marcador.on("mouseover", () => {
+      if (modoOcupadoRef.current) return;
+      quitarHover();
+      marcador.getElement()?.classList.add("marcador-hover");
+      const indice = marcadoresRef.current.findIndex((m) => m.layer === marcador);
+      mostrarTooltipHover(marcador.getLatLng(), `Marcador ${indice + 1}`);
+    });
+    marcador.on("mouseout", quitarHover);
   };
 
   const resaltarCalle = (calle) => {
@@ -680,6 +754,7 @@ const MapaProyecto = () => {
 
         const nuevaCalle = { ...data.data, layer };
         layer.on("click", () => abrirModalParaEditarPorId(nuevaCalle.id));
+        registrarHoverCalle(layer, nuevaCalle.id);
 
         setCalles((actuales) => [...actuales, nuevaCalle]);
         setTrazoPendiente(null);
@@ -711,6 +786,7 @@ const MapaProyecto = () => {
     setErrorGuardarCalle("");
     try {
       await clientAxios.delete(`/proyectos/${proyectoId}/calles/${modalDatosIniciales.id}`);
+      quitarHover();
       mapInstance.current.removeLayer(modalDatosIniciales.layer);
       quitarResaltadoCalle();
       setCalles((actuales) => actuales.filter((c) => c.id !== modalDatosIniciales.id));
@@ -825,8 +901,8 @@ const buscarUbicacion = async () => {
   }
 
   return (
-    <main className="min-h-screen bg-[#D1DDF2] px-6 py-8 font-sans text-[#052B59]">
-      <div className="mx-auto max-w-6xl">
+    <main className="min-h-screen bg-[#D1DDF2] px-4 pt-8 pb-32 font-sans text-[#052B59]">
+      <div className="mx-auto w-full max-w-[1600px]">
         <button
           onClick={() => navigate("/proyectos")}
           className="mb-6 text-sm text-[#4B5563] hover:text-[#1C5DAC]"
@@ -852,7 +928,7 @@ const buscarUbicacion = async () => {
         </div>
 
         <div className="flex items-start gap-4">
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <div className="mb-3 flex gap-2">
               <input
                 type="text"
@@ -915,8 +991,8 @@ const buscarUbicacion = async () => {
               </div>
             )}
 
-            <section className="relative h-[520px] overflow-hidden border border-dash-border">
-              <div ref={mapRef} className="h-[520px] w-full" />
+            <section className="relative h-[78vh] min-h-[600px] overflow-hidden border border-dash-border">
+              <div ref={mapRef} className="h-full w-full" />
             </section>
 
             {errorCalles && <p className="mt-4 text-sm text-red-400">{errorCalles}</p>}

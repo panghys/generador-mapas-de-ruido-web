@@ -17,7 +17,7 @@ const AppRoutes = () => {
 
   return (
     <>
-      {location.pathname !== "/login" && location.pathname !== "/" && <div className="sm:px-16 px-6 flex justify-center items-center"><div className="xl:max-w-[1280px] w-full"><Navbar /></div></div>}
+      {location.pathname !== "/login" && location.pathname !== "/" && <Navbar />}
       <Routes>
           <Route path="/" element={<Entrada />} />
           <Route path="/usuarios" element={<User />} />
