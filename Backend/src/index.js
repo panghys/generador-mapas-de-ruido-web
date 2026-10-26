@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import http from "http";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,6 +12,7 @@ dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
 dotenv.config();
 
 import app from "./app.js";
+import { initSocket } from "./socket.js";
 import { sequelize } from "./persintence/database/database.js";
 import { ensureStreetNoiseColumns } from "./persintence/database/ensureStreetNoiseColumns.js";
 
@@ -20,7 +22,13 @@ async function main() {
 
   const port = process.env.PORT || 4003;
 
-  app.listen(port, "0.0.0.0", () => {
+  // Envolver Express en el servidor HTTP nativo para habilitar WebSockets
+  const server = http.createServer(app);
+
+  // Inicializar Socket.io sobre el servidor
+  initSocket(server);
+
+  server.listen(port, "0.0.0.0", () => {
     console.log(`el server esta corriendo en: http://0.0.0.0:${port}`);
   });
 }

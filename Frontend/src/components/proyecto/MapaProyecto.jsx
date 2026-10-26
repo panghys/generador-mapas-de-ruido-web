@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { socket } from "../config/socket.js";
 import booleanWithin from "@turf/boolean-within";
 import buffer from "@turf/buffer";
 import { lineString, polygon as turfPolygon } from "@turf/helpers";
@@ -18,6 +19,20 @@ import { obtenerNivelEmisionCalle } from "./ruidoPropagacion";
 import { calcularRuidoLocal } from "./ruidoLocal";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import "@geoman-io/leaflet-geoman-free";
+
+function obtenerUsuarioActual() {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return { id: 0, name: "Colaborador" };
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return {
+      id: payload.id,
+      name: payload.name || payload.nombre || payload.mail || "Colaborador",
+    };
+  } catch {
+    return { id: 0, name: "Colaborador" };
+  }
+}
 
 const layerALineString = (layer) => {
   const latlngs = layer.getLatLngs();
@@ -205,6 +220,7 @@ const MapaProyecto = () => {
   const [cargandoCalles, setCargandoCalles] = useState(false);
 
   const [calles, setCalles] = useState([]);
+  const [bloqueos, setBloqueos] = useState([]);
   const [errorCalles, setErrorCalles] = useState("");
   const [marcadores, setMarcadores] = useState([]);
 
@@ -240,6 +256,8 @@ const MapaProyecto = () => {
 
   const modoOcupadoRef = useRef(false);
   const callesRef = useRef([]);
+  const bloqueosRef = useRef([]);
+  const calleBloqueoSolicitadoRef = useRef(null);
 
   const modoOcupado =
     delimitando !== null || editandoZona || modalCalleAbierto || trazoPendiente !== null;
@@ -306,6 +324,138 @@ const MapaProyecto = () => {
   useEffect(() => {
     callesRef.current = calles;
   }, [calles]);
+
+  useEffect(() => {
+    bloqueosRef.current = bloqueos;
+  }, [bloqueos]);
+
+  useEffect(() => {
+    if (!proyectoId) return undefined;
+
+    const usuario = obtenerUsuarioActual();
+    const alRecibirBloqueos = (lista) => setBloqueos(Array.isArray(lista) ? lista : []);
+    const alBloquearCalle = (bloqueo) => {
+      setBloqueos((actuales) => [
+        ...actuales.filter((actual) => String(actual.calleId) !== String(bloqueo.calleId)),
+        bloqueo,
+      ]);
+      if (String(calleBloqueoSolicitadoRef.current) === String(bloqueo.calleId)) {
+        calleBloqueoSolicitadoRef.current = null;
+      }
+    };
+    const alLiberarCalle = ({ calleId }) => {
+      setBloqueos((actuales) =>
+        actuales.filter((bloqueo) => String(bloqueo.calleId) !== String(calleId))
+      );
+    };
+    const alRechazarBloqueo = ({ calleId, bloqueadoPor }) => {
+      if (String(calleBloqueoSolicitadoRef.current) !== String(calleId)) return;
+
+      calleBloqueoSolicitadoRef.current = null;
+      const calleActual = callesRef.current.find(
+        (calle) => String(calle.id) === String(calleId)
+      );
+      calleActual?.layer.setStyle({ weight: PESO_CALLE });
+      quitarResaltadoCalle();
+      setModalCalleAbierto(false);
+      setModalDatosIniciales(null);
+      setMensajeModal({
+        titulo: "Calle en edición",
+        mensaje: `Esta calle está siendo editada actualmente por ${bloqueadoPor}. Espera a que termine para modificarla.`,
+      });
+    };
+    const alSincronizarCalle = ({ accion, data }) => {
+      if (!data?.id) return;
+
+      if (accion === "eliminar") {
+        const calleExistente = callesRef.current.find(
+          (calle) => String(calle.id) === String(data.id)
+        );
+        if (calleExistente && mapInstance.current?.hasLayer(calleExistente.layer)) {
+          mapInstance.current.removeLayer(calleExistente.layer);
+        }
+        setCalles((actuales) => actuales.filter((calle) => String(calle.id) !== String(data.id)));
+        return;
+      }
+
+      if (accion !== "crear" && accion !== "actualizar") return;
+
+      const calleExistente = callesRef.current.find(
+        (calle) => String(calle.id) === String(data.id)
+      );
+      const datosCalle = { ...calleExistente, ...data };
+      const nivelRuido =
+        data.nivelRuidoCalculado ??
+        calcularRuidoLocal(
+          {
+            pequeños: datosCalle.trafico_vehiculos_pequenos,
+            medianos: datosCalle.trafico_vehiculos_medianos,
+            grandes: datosCalle.trafico_vehiculos_grandes,
+          },
+          datosCalle.velocidadPromedio ?? 50,
+          datosCalle.tipoSuperficie || "asfalto_no_ranurado",
+          datosCalle.periodoConteo || "15_minutos"
+        );
+      const trazoActualizado = data.trazo_calle
+        ? lineStringALatLngs(data.trazo_calle)
+        : null;
+      let layer = calleExistente?.layer;
+
+      if (!layer || trazoActualizado) {
+        if (calleExistente && layer && mapInstance.current?.hasLayer(layer)) {
+          mapInstance.current.removeLayer(layer);
+        }
+        layer = crearCalleDobleTrazo(
+          trazoActualizado || lineStringALatLngs(datosCalle.trazo_calle),
+          {
+            color: nivelRuido > 0
+              ? obtenerColorRuido(nivelRuido).color
+              : datosCalle.color_asignado || "#FF0000",
+            weight: PESO_CALLE,
+          }
+        );
+        if (mapInstance.current) layer.addTo(mapInstance.current);
+        layer.on("click", () => abrirModalParaEditarPorId(data.id));
+      } else {
+        layer.setStyle({
+          color: nivelRuido > 0
+            ? obtenerColorRuido(nivelRuido).color
+            : datosCalle.color_asignado || "#FF0000",
+          weight: PESO_CALLE,
+        });
+      }
+
+      const calleSincronizada = { ...datosCalle, nivelRuidoCalculado: nivelRuido, layer };
+      setCalles((actuales) => {
+        const existe = actuales.some((calle) => String(calle.id) === String(data.id));
+        return existe
+          ? actuales.map((calle) =>
+              String(calle.id) === String(data.id) ? calleSincronizada : calle
+            )
+          : [...actuales, calleSincronizada];
+      });
+    };
+
+    socket.on("estado_bloqueos", alRecibirBloqueos);
+    socket.on("calle_bloqueada", alBloquearCalle);
+    socket.on("calle_liberada", alLiberarCalle);
+    socket.on("calle_sincronizada", alSincronizarCalle);
+    socket.on("bloqueo_rechazado", alRechazarBloqueo);
+    socket.connect();
+    socket.emit("unirse_proyecto", { proyectoId, usuario });
+
+    return () => {
+      socket.emit("salir_proyecto", { proyectoId });
+      socket.off("estado_bloqueos", alRecibirBloqueos);
+      socket.off("calle_bloqueada", alBloquearCalle);
+      socket.off("calle_liberada", alLiberarCalle);
+      socket.off("calle_sincronizada", alSincronizarCalle);
+      socket.off("bloqueo_rechazado", alRechazarBloqueo);
+      socket.disconnect();
+      setBloqueos([]);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [proyectoId]);
 
   useEffect(() => {
     if (proyecto) return;
@@ -613,13 +763,33 @@ const MapaProyecto = () => {
     const calleActual = callesRef.current.find((c) => c.id === calleId);
     if (!calleActual) return;
 
+    const usuarioActual = obtenerUsuarioActual();
+    const bloqueo = bloqueosRef.current.find(
+      (actual) =>
+        String(actual.calleId) === String(calleActual.id) &&
+        String(actual.usuarioId) !== String(usuarioActual.id)
+    );
+    if (bloqueo) {
+      setMensajeModal({
+        titulo: "Calle en edición",
+        mensaje: `Esta calle está siendo editada actualmente por ${bloqueo.usuarioNombre}. Espera a que termine para modificarla.`,
+      });
+      return;
+    }
+
+    calleBloqueoSolicitadoRef.current = calleActual.id;
+    socket.emit("bloquear_calle", {
+      proyectoId,
+      calleId: calleActual.id,
+      usuario: usuarioActual,
+    });
     resaltarCalle(calleActual);
     calleActual.layer.setStyle({ weight: PESO_CALLE_SELECCIONADA });
 
     setModalDatosIniciales(calleActual);
     setModalCalleAbierto(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [proyectoId]);
 
   const abrirModalParaGuardarTrazo = () => {
     if (!trazoPendiente) return;
@@ -657,6 +827,12 @@ const MapaProyecto = () => {
         setCalles((actuales) =>
           actuales.map((c) => (c.id === modalDatosIniciales.id ? { ...c, ...data.data } : c))
         );
+        socket.emit("liberar_calle", { proyectoId, calleId: modalDatosIniciales.id });
+        socket.emit("calle_actualizada", {
+          proyectoId,
+          accion: "actualizar",
+          data: data.data,
+        });
       } else {
         const layer = trazoPendiente.layer;
 
@@ -682,6 +858,11 @@ const MapaProyecto = () => {
         layer.on("click", () => abrirModalParaEditarPorId(nuevaCalle.id));
 
         setCalles((actuales) => [...actuales, nuevaCalle]);
+        socket.emit("calle_actualizada", {
+          proyectoId,
+          accion: "crear",
+          data: data.data,
+        });
         setTrazoPendiente(null);
       }
 
@@ -699,8 +880,10 @@ const MapaProyecto = () => {
     } else {
       modalDatosIniciales.layer.setStyle({ weight: PESO_CALLE });
       quitarResaltadoCalle();
+      socket.emit("liberar_calle", { proyectoId, calleId: modalDatosIniciales.id });
     }
 
+    calleBloqueoSolicitadoRef.current = null;
     setModalCalleAbierto(false);
     setModalDatosIniciales(null);
   };
@@ -714,6 +897,13 @@ const MapaProyecto = () => {
       mapInstance.current.removeLayer(modalDatosIniciales.layer);
       quitarResaltadoCalle();
       setCalles((actuales) => actuales.filter((c) => c.id !== modalDatosIniciales.id));
+      socket.emit("liberar_calle", { proyectoId, calleId: modalDatosIniciales.id });
+      socket.emit("calle_actualizada", {
+        proyectoId,
+        accion: "eliminar",
+        data: { id: modalDatosIniciales.id },
+      });
+      calleBloqueoSolicitadoRef.current = null;
       setModalCalleAbierto(false);
       setModalDatosIniciales(null);
     } catch (err) {
