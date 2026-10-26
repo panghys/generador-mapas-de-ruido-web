@@ -8,10 +8,15 @@ import {
   deleteProject,
 } from "../controllers/project.controller.js";
 import streetRoutes from "./street.routes.js";
+import { listarPublicos, detallePublico } from "../controllers/publicProject.controller.js";
 
 const router = Router();
 
-// Todas las rutas de proyectos requieren estar autenticado
+// Consultas públicas: solo lectura, antes del middleware JWT.
+router.get("/publicos", listarPublicos);
+router.get("/publicos/:id", detallePublico);
+
+// Las operaciones privadas siguen exigiendo JWT.
 router.use(verifyToken);
 
 router.get("/", getProjects);

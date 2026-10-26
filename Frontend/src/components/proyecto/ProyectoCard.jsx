@@ -8,11 +8,12 @@ import MiniMapaPreview from "./MiniMapaPreview";
 const formatFecha = (fecha) =>
   new Date(fecha).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" });
 
-const ProyectoCard = ({ proyecto, onOpen, onDelete, onToggleEstado }) => {
+const ProyectoCard = ({ proyecto, onOpen, onDelete, onToggleEstado, onTogglePublico }) => {
   const [modalEliminacionAbierto, setModalEliminacionAbierto] = useState(false);
   const [modalDescripcionAbierto, setModalDescripcionAbierto] = useState(false);
   const [eliminando, setEliminando] = useState(false);
   const [cambiandoEstado, setCambiandoEstado] = useState(false);
+  const [cambiandoPublico, setCambiandoPublico] = useState(false);
 
   const esListo = proyecto.estado === "listo";
 
@@ -25,6 +26,14 @@ const ProyectoCard = ({ proyecto, onOpen, onDelete, onToggleEstado }) => {
     } finally {
       setCambiandoEstado(false);
     }
+  };
+
+  const handleTogglePublico = async (e) => {
+    e.stopPropagation();
+    if (!esListo || cambiandoPublico) return;
+    setCambiandoPublico(true);
+    try { await onTogglePublico(proyecto.id, !proyecto.es_publico); }
+    finally { setCambiandoPublico(false); }
   };
 
   const handleEliminar = async () => {
@@ -103,6 +112,17 @@ const ProyectoCard = ({ proyecto, onOpen, onDelete, onToggleEstado }) => {
             </div>
           </div>
 
+          <button
+            type="button" role="switch" aria-checked={Boolean(proyecto.es_publico && esListo)}
+            aria-label={proyecto.es_publico && esListo ? "Hacer privado" : "Publicar mapa"}
+            title={!esListo ? "Marca primero el proyecto como Listo" : "Cambiar visibilidad del mapa"}
+            disabled={!esListo || cambiandoPublico}
+            onClick={handleTogglePublico}
+            className="mb-3 flex items-center gap-2 rounded-lg border border-white/30 px-3 py-1.5 text-xs font-semibold text-white hover:border-teal-300 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {proyecto.es_publico && esListo ? "🌐 Público" : "🔒 Privado"}
+            <span className={`relative h-4 w-8 rounded-full transition-colors ${proyecto.es_publico && esListo ? "bg-teal-400" : "bg-slate-500"}`}><span className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform ${proyecto.es_publico && esListo ? "translate-x-[18px]" : "translate-x-[2px]"}`} /></span>
+          </button>
           <h3 className="text-white font-medium text-sm mb-1">{proyecto.nombre}</h3>
           <p className="text-[#052B59] text-sm mb-3 line-clamp-1">{proyecto.descripcion || "Sin descripción"}</p>
           {proyecto.descripcion && (

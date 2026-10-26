@@ -1,7 +1,7 @@
 // Frontend/src/components/proyecto/ListaProyectos.jsx
 import ProyectoCard from "./ProyectoCard";
 
-const ListaProyectos = ({ proyectos, onOpen, onDelete, onToggleEstado }) => {
+const ListaProyectos = ({ proyectos, onOpen, onDelete, onToggleEstado, onTogglePublico }) => {
   if (proyectos.length === 0) {
     return (
       <div className="border border-[#052B59] rounded-xl py-16 flex flex-col items-center justify-center text-center">
@@ -20,6 +20,7 @@ const ListaProyectos = ({ proyectos, onOpen, onDelete, onToggleEstado }) => {
           onOpen={onOpen}
           onDelete={onDelete}
           onToggleEstado={onToggleEstado}
+          onTogglePublico={onTogglePublico}
         />
       ))}
     </div>

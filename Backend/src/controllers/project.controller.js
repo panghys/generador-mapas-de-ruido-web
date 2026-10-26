@@ -44,7 +44,7 @@ export function getProject(req, res) {
 
 export function updateProject(req, res) {
   const { id } = req.params;
-  const { nombre, descripcion, region, comuna, estado, zona } = req.body;
+  const { nombre, descripcion, region, comuna, estado, zona, es_publico } = req.body;
 
   // Actualización parcial: solo se tocan los campos que vinieron en el body.
   // "zona" acepta null explícito (para borrar la zona delimitada).
@@ -54,6 +54,10 @@ export function updateProject(req, res) {
   if (region !== undefined) cambios.region = region;
   if (comuna !== undefined) cambios.comuna = comuna;
   if (estado !== undefined) cambios.estado = estado;
+  if (es_publico !== undefined) {
+    if (typeof es_publico !== "boolean") return res.status(400).json({ status: false, error: "es_publico debe ser booleano." });
+    cambios.es_publico = es_publico;
+  }
   if (zona !== undefined) cambios.zona = zona;
 
   updateProject_(id, req.user.id, cambios).then(

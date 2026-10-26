@@ -63,6 +63,16 @@ const Proyecto = () => {
     }
   };
 
+  const handleCambiarPublico = async (proyectoId, esPublico) => {
+    setError("");
+    try {
+      const { data } = await clientAxios.put(`/proyectos/${proyectoId}`, { es_publico: esPublico });
+      setProyectos((prev) => prev.map((p) => p.id === proyectoId ? { ...p, ...data.data } : p));
+    } catch (err) {
+      setError(err.response?.data?.error || "No se pudo cambiar la privacidad del proyecto.");
+    }
+  };
+
   const handleAbrir = (proyecto) => {
     navigate(`/proyectos/${proyecto.id}/mapa`, { state: { proyecto } });
   };
@@ -135,6 +145,7 @@ const Proyecto = () => {
               onOpen={handleAbrir}
               onDelete={handleEliminar}
               onToggleEstado={handleCambiarEstado}
+              onTogglePublico={handleCambiarPublico}
             />
           )}
         </div>

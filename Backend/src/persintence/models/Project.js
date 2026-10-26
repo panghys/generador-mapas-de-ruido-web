@@ -26,6 +26,11 @@ export const Project = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    es_publico: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
     estado: {
       type: DataTypes.STRING,
       defaultValue: "borrador",
