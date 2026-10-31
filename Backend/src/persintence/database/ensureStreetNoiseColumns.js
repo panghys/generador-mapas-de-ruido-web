@@ -4,6 +4,24 @@ import { sequelize } from "./database.js";
 export async function ensureStreetNoiseColumns() {
   const queryInterface = sequelize.getQueryInterface();
   const tables = await queryInterface.showAllTables();
+  const existeTabla = (tables, nombre) =>
+    tables.some((table) => {
+      const tableName =
+        typeof table === "string" ? table : table.tableName || Object.values(table)[0];
+      return typeof tableName === "string" && tableName.toLowerCase() === nombre;
+    });
+
+  if (existeTabla(tables, "projects")) {
+    const columnasProyecto = await queryInterface.describeTable("projects");
+    if (!columnasProyecto.modeloCalculo) {
+      await queryInterface.addColumn("projects", "modeloCalculo", {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: "RLS90",
+      });
+    }
+  }
+
   const streetsTableExists = tables.some((table) => {
     const tableName =
       typeof table === "string" ? table : table.tableName || Object.values(table)[0];
@@ -26,6 +44,7 @@ export async function ensureStreetNoiseColumns() {
       allowNull: false,
       defaultValue: "15_minutos",
     },
+    trafico_motocicletas: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
   };
 
   for (const [name, definition] of Object.entries(noiseColumns)) {

@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import { MODELO_CNOSSOS } from "./modeloRuido";
 
 const pasos = [
   {
@@ -32,14 +33,57 @@ const pasos = [
   },
 ];
 
-const InstruccionesMapaModal = ({ abierto, onCerrar }) => {
+const pasosCNOSSOS = [
+  {
+    titulo: "Qué es CNOSSOS-EU",
+    texto:
+      "Es el método europeo de cálculo de ruido de tráfico. En lugar de un único valor en dB(A), calcula el ruido en 8 bandas de frecuencia (63 a 8000 Hz) separando la rodadura de los neumáticos y el motor, y luego lo pondera en dB(A).",
+  },
+  {
+    titulo: "En qué se diferencia de RLS-90",
+    texto:
+      "Usa cuatro categorías de vehículo (livianos, medianos, pesados y motocicletas) en vez de tres, y el efecto de la velocidad se calcula por categoría y por banda. Además, la propagación depende de la frecuencia: los sonidos agudos se atenúan más con la distancia que los graves.",
+  },
+  {
+    titulo: "1. Delimitar la zona y trazar calles",
+    texto:
+      "Funciona igual que en el modelo simple: \"Delimitar zona\" para el perímetro y \"Crear calle\" para trazar los tramos. Termina el trazo con doble clic o Enter y completa los datos de la calle.",
+  },
+  {
+    titulo: "2. Ingresar el tráfico",
+    texto:
+      "En cada calle indica el conteo de livianos, medianos, pesados y motocicletas. El conteo puede ser de 15 minutos o de una hora, según el período elegido. La velocidad promedio se aplica a todas las categorías. El tipo de superficie no se usa en este modelo: se considera la superficie de referencia.",
+  },
+  {
+    titulo: "3. Leer el resultado",
+    texto:
+      "El modal muestra el nivel estimado en dB(A) a 25 m de la calle, y ese valor define el color del trazo. La superficie de ruido suma la energía de todas las calles, banda por banda. Este modelo no incluye edificios, terreno ni atenuación urbana, por lo que el ruido alcanza distancias mayores que en RLS-90 y los valores no son directamente comparables entre ambos modelos.",
+  },
+  {
+    titulo: "4. Editar, marcadores y búsqueda",
+    texto:
+      "Haz clic en una calle para editarla o eliminarla. \"Añadir marcador\" coloca un punto de referencia, y el buscador acepta ciudades, direcciones o coordenadas (ej: -39.8142, -73.2459).",
+  },
+  {
+    titulo: "El modelo no se puede cambiar",
+    texto:
+      "El modelo de cálculo se elige al crear el proyecto. Para comparar ambos métodos, crea otro proyecto con el otro modelo.",
+  },
+];
+
+const InstruccionesMapaModal = ({ abierto, modeloCalculo, onCerrar }) => {
   if (!abierto) return null;
+
+  const esCNOSSOS = modeloCalculo === MODELO_CNOSSOS;
+  const lista = esCNOSSOS ? pasosCNOSSOS : pasos;
 
   const contenido = (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4">
       <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-[#052B59]/95 p-5 text-dash-text shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">CÓMO USAR EL MAPA</h2>
+          <h2 className="text-sm font-semibold">
+            {esCNOSSOS ? "CÓMO USAR EL MAPA · CNOSSOS-EU" : "CÓMO USAR EL MAPA"}
+          </h2>
           <button
             type="button"
             onClick={onCerrar}
@@ -50,7 +94,7 @@ const InstruccionesMapaModal = ({ abierto, onCerrar }) => {
         </div>
 
         <div className="flex flex-col gap-4 text-sm">
-          {pasos.map(({ titulo, texto }) => (
+          {lista.map(({ titulo, texto }) => (
             <section key={titulo}>
               <h3 className="mb-1 font-semibold text-[#70adf7]">{titulo}</h3>
               <p className="text-slate-300">{texto}</p>

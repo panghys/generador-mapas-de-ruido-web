@@ -7,6 +7,7 @@ const ProyectoNuevo = () => {
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [estado, setEstado] = useState("borrador");
+  const [modeloCalculo, setModeloCalculo] = useState("RLS90");
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
 
@@ -26,6 +27,7 @@ const ProyectoNuevo = () => {
         nombre: nombre.trim(),
         descripcion: descripcion.trim(),
         estado,
+        modeloCalculo,
       });
       navigate("/proyectos");
     } catch (err) {
@@ -88,6 +90,47 @@ const ProyectoNuevo = () => {
                 className="w-full resize-none border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-[#1C5DAC]"
               />
             </div>
+
+            <fieldset>
+              <legend className="mb-2 block text-sm font-medium text-[#052B59]">Modelo de cálculo</legend>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  {
+                    valor: "RLS90",
+                    titulo: "RLS-90",
+                    detalle: "Método simplificado: nivel único en dB(A) a 25 m según flujo, porcentaje de pesados, velocidad y superficie.",
+                  },
+                  {
+                    valor: "CNOSSOS",
+                    titulo: "CNOSSOS-EU",
+                    detalle: "Método europeo por bandas de octava con cuatro categorías de vehículo (livianos, medianos, pesados y motocicletas).",
+                  },
+                ].map((opcion) => (
+                  <label
+                    key={opcion.valor}
+                    className={`flex cursor-pointer flex-col gap-1 rounded-lg border p-3 transition-colors ${
+                      modeloCalculo === opcion.valor
+                        ? "border-[#1C5DAC] bg-[#1C5DAC]/5"
+                        : "border-slate-300 hover:border-[#1C5DAC]/60"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2 text-sm font-semibold text-[#052B59]">
+                      <input
+                        type="radio"
+                        name="modeloCalculo"
+                        value={opcion.valor}
+                        checked={modeloCalculo === opcion.valor}
+                        onChange={() => setModeloCalculo(opcion.valor)}
+                        className="accent-[#1C5DAC]"
+                      />
+                      {opcion.titulo}
+                    </span>
+                    <span className="text-xs leading-5 text-[#4B5563]">{opcion.detalle}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-[#4B5563]">El modelo no se puede cambiar después de crear el proyecto.</p>
+            </fieldset>
 
             <div>
               <label htmlFor="estado" className="mb-2 block text-sm font-medium text-[#052B59]">

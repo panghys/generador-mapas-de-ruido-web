@@ -5,8 +5,8 @@ import { useNavigate } from "react-router-dom";
 import clientAxios from "../config/clienteAxios";
 import CircularCarousel from "../CircularCarousel";
 
-import { calcularRuidoLocal } from "./ruidoLocal";
-import { obtenerNivelEmisionCalle } from "./ruidoPropagacion";
+import { calcularNivelEmision25 } from "./modeloRuido";
+import { obtenerNivelEmisionCalle, obtenerBandasCalle } from "./ruidoPropagacion";
 import {
   generarMapaRuido,
   crearUrlVistaPrevia,
@@ -32,16 +32,7 @@ async function crearMiniatura(proyecto) {
   ).map(([lng, lat]) => [lat, lng]);
 
   const calles = (proyecto.calles || []).map((calle) => {
-    const nivel = calcularRuidoLocal(
-      {
-        pequeños: calle.trafico_vehiculos_pequenos,
-        medianos: calle.trafico_vehiculos_medianos,
-        grandes: calle.trafico_vehiculos_grandes,
-      },
-      calle.velocidadPromedio ?? 50,
-      calle.tipoSuperficie || "asfalto_no_ranurado",
-      calle.periodoConteo || "15_minutos"
-    );
+    const nivel = calcularNivelEmision25(calle, proyecto.modeloCalculo);
 
     return {
       ...calle,
@@ -55,7 +46,8 @@ async function crearMiniatura(proyecto) {
   const fuentes = calles
     .map((calle) => ({
       latlngs: calle.latlngs,
-      nivel: obtenerNivelEmisionCalle(calle),
+      nivel: obtenerNivelEmisionCalle(calle, proyecto.modeloCalculo),
+      bandasA: obtenerBandasCalle(calle, proyecto.modeloCalculo),
     }))
     .filter(
       (calle) =>

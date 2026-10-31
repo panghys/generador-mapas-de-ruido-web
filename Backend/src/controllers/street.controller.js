@@ -7,6 +7,24 @@ import {
   deleteStreet_,
 } from "../persintence/repository/street.repository.js";
 import { calcularRuidoRLS90, validarParametrosRuido } from "../services/ruido.calculator.js";
+import { calcularNivelCNOSSOS25m } from "../services/ruido.cnossos.js";
+
+const calcularNivelCalle = (modelo, parametros, velocidad, tipoSuperficie, periodoConteo) => {
+  if (modelo === "CNOSSOS") {
+    const nivel = calcularNivelCNOSSOS25m(
+      {
+        livianos: parametros.pequeños,
+        medianos: parametros.medianos,
+        pesados: parametros.grandes,
+        motos: parametros.motos,
+      },
+      velocidad,
+      periodoConteo
+    );
+    return nivel ?? 0;
+  }
+  return calcularRuidoRLS90(parametros, velocidad, tipoSuperficie, 25, periodoConteo);
+};
 
 // Verifica que el proyecto exista y pertenezca al usuario autenticado
 async function verificarProyecto(proyectoId, usuarioId) {
@@ -38,6 +56,7 @@ export async function createStreet(req, res) {
     trafico_vehiculos_grandes,
     trafico_vehiculos_medianos,
     trafico_vehiculos_pequenos,
+    trafico_motocicletas,
     color_asignado,
     velocidadPromedio = 50,
     tipoSuperficie = "asfalto_no_ranurado",
@@ -52,6 +71,7 @@ export async function createStreet(req, res) {
     pequeños: trafico_vehiculos_pequenos ?? 0,
     medianos: trafico_vehiculos_medianos ?? 0,
     grandes: trafico_vehiculos_grandes ?? 0,
+    motos: proyecto.modeloCalculo === "CNOSSOS" ? trafico_motocicletas ?? 0 : 0,
     velocidadPromedio,
     periodoConteo,
   };
@@ -60,11 +80,11 @@ export async function createStreet(req, res) {
     return res.status(400).json({ status: false, error: validacion.errores.join(" ") });
   }
 
-  const nivelRuido = calcularRuidoRLS90(
+  const nivelRuido = calcularNivelCalle(
+    proyecto.modeloCalculo,
     parametrosRuido,
     velocidadPromedio,
     tipoSuperficie,
-    25,
     periodoConteo
   );
 
@@ -76,6 +96,7 @@ export async function createStreet(req, res) {
     trafico_vehiculos_grandes: Number(parametrosRuido.grandes),
     trafico_vehiculos_medianos: Number(parametrosRuido.medianos),
     trafico_vehiculos_pequenos: Number(parametrosRuido.pequeños),
+    trafico_motocicletas: Number(parametrosRuido.motos),
     color_asignado,
     velocidadPromedio,
     tipoSuperficie,
@@ -109,6 +130,7 @@ export async function updateStreet(req, res) {
     trafico_vehiculos_grandes,
     trafico_vehiculos_medianos,
     trafico_vehiculos_pequenos,
+    trafico_motocicletas,
     color_asignado,
     velocidadPromedio = calleActual.velocidadPromedio ?? 50,
     tipoSuperficie = calleActual.tipoSuperficie || "asfalto_no_ranurado",
@@ -119,6 +141,10 @@ export async function updateStreet(req, res) {
     pequeños: trafico_vehiculos_pequenos ?? calleActual.trafico_vehiculos_pequenos ?? 0,
     medianos: trafico_vehiculos_medianos ?? calleActual.trafico_vehiculos_medianos ?? 0,
     grandes: trafico_vehiculos_grandes ?? calleActual.trafico_vehiculos_grandes ?? 0,
+    motos:
+      proyecto.modeloCalculo === "CNOSSOS"
+        ? trafico_motocicletas ?? calleActual.trafico_motocicletas ?? 0
+        : 0,
     velocidadPromedio,
     periodoConteo,
   };
@@ -135,15 +161,16 @@ export async function updateStreet(req, res) {
   if (trafico_vehiculos_grandes !== undefined) cambios.trafico_vehiculos_grandes = trafico_vehiculos_grandes;
   if (trafico_vehiculos_medianos !== undefined) cambios.trafico_vehiculos_medianos = trafico_vehiculos_medianos;
   if (trafico_vehiculos_pequenos !== undefined) cambios.trafico_vehiculos_pequenos = trafico_vehiculos_pequenos;
+  if (proyecto.modeloCalculo === "CNOSSOS") cambios.trafico_motocicletas = Number(parametrosRuido.motos);
   if (color_asignado !== undefined) cambios.color_asignado = color_asignado;
   cambios.velocidadPromedio = Number(velocidadPromedio);
   cambios.tipoSuperficie = tipoSuperficie;
   cambios.periodoConteo = periodoConteo;
-  cambios.nivelRuidoCalculado = calcularRuidoRLS90(
+  cambios.nivelRuidoCalculado = calcularNivelCalle(
+    proyecto.modeloCalculo,
     parametrosRuido,
     velocidadPromedio,
     tipoSuperficie,
-    25,
     periodoConteo
   );
 
