@@ -19,6 +19,8 @@ import { obtenerNivelEmisionCalle } from "./ruidoPropagacion";
 import { calcularRuidoLocal } from "./ruidoLocal";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import "@geoman-io/leaflet-geoman-free";
+import ColaboradoresModal from "./ColaboradoresModal.jsx";
+import PanelActividad from "./PanelActividad.jsx";
 
 function obtenerUsuarioActual() {
   try {
@@ -216,6 +218,11 @@ const MapaProyecto = () => {
   const { id: proyectoId } = useParams();
 
   const [proyecto, setProyecto] = useState(location.state?.proyecto || null);
+  const usuarioActual = obtenerUsuarioActual();
+  const esPropietario = Boolean(
+    proyecto &&
+      (proyecto.usuario_id === usuarioActual.id || proyecto.miRol === "propietario")
+  );
   const [cargandoProyecto, setCargandoProyecto] = useState(!location.state?.proyecto);
   const [cargandoCalles, setCargandoCalles] = useState(false);
 
@@ -232,6 +239,10 @@ const MapaProyecto = () => {
   const [trazoPendiente, setTrazoPendiente] = useState(null);
 
   const [modalCalleAbierto, setModalCalleAbierto] = useState(false);
+  const [modalColaboradoresAbierto, setModalColaboradoresAbierto] = useState(false);
+  const [panelActividadAbierto, setPanelActividadAbierto] = useState(false);
+  const [usuariosConectados, setUsuariosConectados] = useState([]);
+  const [actividades, setActividades] = useState([]);
   const [modalDatosIniciales, setModalDatosIniciales] = useState(null);
   const [errorGuardarCalle, setErrorGuardarCalle] = useState("");
   const [mostrarSuperficieRuido, setMostrarSuperficieRuido] = useState(true);
@@ -333,6 +344,12 @@ const MapaProyecto = () => {
     if (!proyectoId) return undefined;
 
     const usuario = obtenerUsuarioActual();
+    const alActualizarPresencia = (usuarios) => {
+      setUsuariosConectados(usuarios || []);
+    };
+    const alRecibirActividad = (nuevoEvento) => {
+      setActividades((prev) => [nuevoEvento, ...prev.slice(0, 19)]);
+    };
     const alRecibirBloqueos = (lista) => setBloqueos(Array.isArray(lista) ? lista : []);
     const alBloquearCalle = (bloqueo) => {
       setBloqueos((actuales) => [
@@ -436,6 +453,8 @@ const MapaProyecto = () => {
       });
     };
 
+    socket.on("actualizar_presencia", alActualizarPresencia);
+    socket.on("nueva_actividad", alRecibirActividad);
     socket.on("estado_bloqueos", alRecibirBloqueos);
     socket.on("calle_bloqueada", alBloquearCalle);
     socket.on("calle_liberada", alLiberarCalle);
@@ -446,6 +465,8 @@ const MapaProyecto = () => {
 
     return () => {
       socket.emit("salir_proyecto", { proyectoId });
+      socket.off("actualizar_presencia", alActualizarPresencia);
+      socket.off("nueva_actividad", alRecibirActividad);
       socket.off("estado_bloqueos", alRecibirBloqueos);
       socket.off("calle_bloqueada", alBloquearCalle);
       socket.off("calle_liberada", alLiberarCalle);
@@ -782,6 +803,7 @@ const MapaProyecto = () => {
       proyectoId,
       calleId: calleActual.id,
       usuario: usuarioActual,
+      nombreCalle: calleActual.nombre_calle || "calle",
     });
     resaltarCalle(calleActual);
     calleActual.layer.setStyle({ weight: PESO_CALLE_SELECCIONADA });
@@ -1017,12 +1039,53 @@ const buscarUbicacion = async () => {
   return (
     <main className="min-h-screen bg-[#D1DDF2] px-6 py-8 font-sans text-[#052B59]">
       <div className="mx-auto max-w-6xl">
-        <button
-          onClick={() => navigate("/proyectos")}
-          className="mb-6 text-sm text-[#4B5563] hover:text-[#1C5DAC]"
-        >
-          ← Volver a proyectos
-        </button>
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <button
+            onClick={() => navigate("/proyectos")}
+            className="text-sm text-[#4B5563] hover:text-[#1C5DAC]"
+          >
+            ← Volver a proyectos
+          </button>
+          <div className="flex items-center gap-2">
+            {esPropietario && (
+              <button
+                type="button"
+                onClick={() => setModalColaboradoresAbierto(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors shadow-sm"
+                title="Gestionar colaboradores"
+              >
+                <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                  />
+                </svg>
+                <span>Compartir</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setPanelActividadAbierto((prev) => !prev)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors shadow-sm ${
+                panelActividadAbierto
+                  ? "bg-indigo-600 border-indigo-500 text-white"
+                  : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200"
+              }`}
+              title="Ver usuarios en línea y cambios en vivo"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span>Actividad</span>
+              <span className="bg-slate-900/80 px-1.5 py-0.5 rounded text-[10px] text-slate-300 border border-slate-700 font-mono">
+                {usuariosConectados.length}
+              </span>
+            </button>
+          </div>
+        </div>
 
         <div className="mb-6">
           <div className="mb-2 flex items-center gap-3">
@@ -1350,6 +1413,20 @@ const buscarUbicacion = async () => {
       <InstruccionesMapaModal
         abierto={instruccionesAbiertas}
         onCerrar={() => setInstruccionesAbiertas(false)}
+      />
+
+      <ColaboradoresModal
+        abierto={modalColaboradoresAbierto}
+        onCerrar={() => setModalColaboradoresAbierto(false)}
+        proyectoId={proyectoId}
+        esPropietario={esPropietario}
+      />
+
+      <PanelActividad
+        abierto={panelActividadAbierto}
+        onCerrar={() => setPanelActividadAbierto(false)}
+        usuariosConectados={usuariosConectados}
+        actividades={actividades}
       />
 
       <MensajeModal
