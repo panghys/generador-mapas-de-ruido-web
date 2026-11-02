@@ -15,10 +15,12 @@ import app from "./app.js";
 import { initSocket } from "./socket.js";
 import { sequelize } from "./persintence/database/database.js";
 import { ensureStreetNoiseColumns } from "./persintence/database/ensureStreetNoiseColumns.js";
+import { ensureProjectVisibilityColumn } from "./persintence/database/ensureProjectVisibilityColumn.js";
 
 async function main() {
   await ensureStreetNoiseColumns();
   await sequelize.sync({ force: false });
+  await ensureProjectVisibilityColumn();
 
   const port = process.env.PORT || 4003;
 
