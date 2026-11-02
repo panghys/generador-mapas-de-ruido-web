@@ -14,3 +14,183 @@
     color: #052b59;
     border: 1px solid #052b59;
 }
+
+/* ==========================================================
+   ESTILO INSTITUCIONAL PARA EL EDITOR DE MAPAS
+   El alcance .labacam-map-editor evita alterar Comunidad,
+   Leaflet, los cálculos y los componentes no solicitados.
+   ========================================================== */
+
+.labacam-map-editor {
+  --labacam-azul: #155b91;
+  --labacam-azul-oscuro: #153c5b;
+  --labacam-borde: #dce5ec;
+  --labacam-sombra: 0 8px 26px rgba(19, 54, 83, 0.07);
+  background: #f4f7fa;
+  color: #243447;
+}
+
+.labacam-map-editor .labacam-map-toolbar {
+  flex-wrap: wrap;
+  padding: 0 0 18px;
+  border-bottom: 1px solid var(--labacam-borde);
+}
+
+.labacam-map-editor .labacam-map-toolbar > button {
+  padding: 10px 14px;
+  border: 1px solid #dce5ec;
+  border-radius: 10px;
+  background: white;
+  color: var(--labacam-azul);
+  font-weight: 700;
+  transition: background 180ms, border-color 180ms, transform 180ms;
+}
+.labacam-map-editor .labacam-map-toolbar > button:hover {
+  border-color: #9cc7dd;
+  background: #eaf4fa;
+}
+.labacam-map-editor .labacam-map-toolbar > div > button {
+  border: 1px solid #c9dce9;
+  border-radius: 10px;
+  background: white;
+  color: #155b91;
+  font-weight: 700;
+  min-height: 39px;
+  transition: background 180ms, border-color 180ms;
+}
+.labacam-map-editor .labacam-map-toolbar > div > button:hover {
+  background: #eef6fb;
+  border-color: #93bfd9;
+}
+.labacam-map-editor .labacam-map-toolbar > div > button:focus-visible {
+  outline: 2px solid #155b91;
+  outline-offset: 3px;
+}
+.labacam-map-editor .labacam-map-toolbar > div > button[title="Ver usuarios en línea y cambios en vivo"] {
+  border-color: #badacb;
+  background: #edf8f2;
+  color: #17654b;
+}
+.labacam-map-editor .labacam-map-toolbar > div > button .font-mono {
+  background: #dcefe4;
+  color: #17654b;
+  border-color: #c1dfce;
+}
+.labacam-map-editor .labacam-map-heading {
+  margin-bottom: 26px;
+  padding: 24px 26px;
+  background: #fff;
+  border: 1px solid var(--labacam-borde);
+  border-radius: 16px;
+  box-shadow: var(--labacam-sombra);
+}
+.labacam-map-editor .labacam-map-heading h1 {
+  font-size: clamp(1.5rem, 3vw, 2.15rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--labacam-azul-oscuro);
+}
+.labacam-map-editor .labacam-map-search {
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px;
+  margin-bottom: 14px;
+  background: white;
+  border: 1px solid var(--labacam-borde);
+  border-radius: 14px;
+  box-shadow: var(--labacam-sombra);
+}
+.labacam-map-editor .labacam-map-search input {
+  min-width: min(100%, 200px);
+  border-radius: 10px;
+  border-color: #d6e2ea;
+  background: #fafcfe;
+  color: #243447;
+}
+.labacam-map-editor .labacam-map-search input:focus {
+  border-color: #287eab;
+  box-shadow: 0 0 0 3px rgba(40, 126, 171, 0.12);
+}
+.labacam-map-editor .labacam-map-search button {
+  min-height: 40px;
+  border-radius: 10px;
+  font-weight: 700;
+  transition: background 180ms, box-shadow 180ms;
+}
+.labacam-map-editor .labacam-map-search button:not(:disabled):hover {
+  box-shadow: 0 4px 10px rgba(21, 91, 145, 0.12);
+}
+.labacam-map-editor .labacam-map-canvas {
+  border: 1px solid #cadce7;
+  border-radius: 16px;
+  background: #e9f1f6;
+  box-shadow: 0 12px 32px rgba(19, 54, 83, 0.10);
+  isolation: isolate;
+}
+.labacam-map-editor .labacam-tools-sidebar {
+  width: 290px;
+  flex: 0 0 290px;
+  gap: 14px;
+}
+.labacam-map-editor .labacam-tools-sidebar > div:not(.h-px) {
+  border: 1px solid var(--labacam-borde);
+  border-radius: 14px;
+  background: #fff;
+  padding: 18px;
+  box-shadow: var(--labacam-sombra);
+  color: #243447;
+}
+.labacam-map-editor .labacam-tools-sidebar > .h-px {
+  background: #dce5ec;
+}
+.labacam-map-editor .labacam-tools-sidebar h2 {
+  color: var(--labacam-azul-oscuro);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.labacam-map-editor .labacam-tools-sidebar button {
+  border-radius: 10px;
+  min-height: 37px;
+  transition: background 180ms, border-color 180ms, box-shadow 180ms;
+}
+.labacam-map-editor .labacam-tools-sidebar button:not(:disabled):hover {
+  box-shadow: 0 4px 10px rgba(19, 54, 83, 0.12);
+}
+.labacam-map-editor .labacam-tools-sidebar button:focus-visible {
+  outline: 2px solid var(--labacam-azul);
+  outline-offset: 2px;
+}
+.labacam-map-editor .labacam-tools-sidebar button.bg-\[\#154682\],
+.labacam-map-editor .labacam-tools-sidebar button.bg-\[\#1C5DAC\] {
+  background-color: #155b91;
+  color: #fff;
+}
+.labacam-map-editor .labacam-tools-sidebar button.bg-\[\#154682\]:hover,
+.labacam-map-editor .labacam-tools-sidebar button.bg-\[\#1C5DAC\]:hover {
+  background-color: #0f4a76;
+}
+.labacam-map-editor .labacam-tools-sidebar input,
+.labacam-map-editor .labacam-tools-sidebar select {
+  border-radius: 9px;
+}
+.labacam-map-editor .labacam-tools-sidebar li {
+  background: #f8fbfd;
+}
+@media (max-width: 1020px) {
+  .labacam-map-editor .labacam-map-workspace { flex-direction: column; }
+  .labacam-map-editor .labacam-map-workspace > div:first-child { width: 100%; }
+  .labacam-map-editor .labacam-tools-sidebar {
+    width: 100%;
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+    align-items: start;
+  }
+  .labacam-map-editor .labacam-tools-sidebar > .h-px { display: none; }
+}
+@media (max-width: 640px) {
+  .labacam-map-editor .labacam-map-heading { padding: 20px; }
+  .labacam-map-editor .labacam-map-search { padding: 12px; }
+  .labacam-map-editor .labacam-map-search input { flex: 1 1 100%; }
+  .labacam-map-editor .labacam-map-canvas { min-height: 460px; height: 65vh; }
+}

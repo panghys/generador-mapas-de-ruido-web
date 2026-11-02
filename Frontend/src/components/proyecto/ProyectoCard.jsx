@@ -53,24 +53,23 @@ const ProyectoCard = ({ proyecto, onOpen, onDelete, onToggleEstado, onTogglePubl
 
   return (
     <>
-      <div
+      <article
         onClick={() => onOpen(proyecto)}
-        className="text-left bg-[#1C5DAC] hover:bg-[#1C5DAC]/90 border border-[#4B5563] rounded-xl overflow-hidden transition-colors group cursor-pointer relative"
+        className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-[#DCE5EC] bg-white text-left shadow-[0_6px_24px_rgba(19,54,83,0.06)] transition-all duration-300 hover:-translate-y-1 hover:border-[#B4CFDF] hover:shadow-[0_16px_36px_rgba(19,54,83,0.12)]"
       >
-        {/* Vista previa: mini-mapa de la zona delimitada, o placeholder si aún no existe */}
-        <div className="relative h-[150px] border-b border-[#4B5563]">
+        {/* La vista previa real se conserva: no sustituimos MiniMapaPreview. */}
+        <div className="relative h-[190px] overflow-hidden border-b border-[#E7EDF2] bg-[#EAF2F7]">
           <MiniMapaPreview zona={proyecto.zona} proyectoId={proyecto.id} />
-
-          <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-[#1C5DAC]/70 px-2.5 py-1 text-xs font-light text-white backdrop-blur-sm">
+          <span className="absolute bottom-3 left-3 right-3 w-fit max-w-[calc(100%-24px)] truncate rounded-lg border border-white/70 bg-white/95 px-3 py-1.5 text-[11px] font-bold text-[#155B91] shadow-sm backdrop-blur-sm">
             📍 {proyecto.comuna ? `${proyecto.comuna}, ${proyecto.region}` : "Ubicación pendiente"}
           </span>
         </div>
 
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-2">
+        <div className="flex flex-1 flex-col p-5">
+          <div className="mb-4 flex items-center justify-between gap-2">
             <EstadoBadge estado={proyecto.estado} />
             <div className="flex items-center gap-2">
-              {/* Toggle borrador ⇄ listo */}
+              {/* Alternar borrador/listo, mismo handler original. */}
               <button
                 type="button"
                 role="switch"
@@ -79,52 +78,31 @@ const ProyectoCard = ({ proyecto, onOpen, onDelete, onToggleEstado, onTogglePubl
                 title={esListo ? "Listo · clic para volver a borrador" : "Borrador · clic para marcar como listo"}
                 onClick={handleToggleEstado}
                 disabled={cambiandoEstado || proyecto.estado === "procesando"}
-                className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-xs font-bold text-[#052B59] transition-colors hover:text-dash-text disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#DCE5EC] bg-[#F8FBFD] px-2.5 py-1.5 text-xs font-semibold text-[#52697C] transition-all hover:border-[#9DC5DD] hover:bg-[#EEF6FB] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <span
-                  className={`relative inline-flex h-5 w-9 items-center border border-[#052B59] rounded-full transition-colors ${
-                    esListo ? "bg-[#052B59]" : "bg-[#052B59]/40"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                      esListo ? "translate-x-[18px]" : "translate-x-[2px]"
-                    }`}
-                  />
+                <span className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors ${esListo ? "bg-[#155B91]" : "bg-[#BBCAD5]"}`}>
+                  <span className={`absolute left-[2px] top-[2px] h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${esListo ? "translate-x-4" : "translate-x-0"}`} />
                 </span>
-                Listo
+                <span className="hidden sm:inline">Estado</span>
               </button>
-
               <button
+                type="button"
                 onClick={handleClickDelete}
-                className="p-1.5 text-[#052B59] hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#F3D8DB] bg-[#FFF6F6] text-[#B84752] transition-colors hover:border-red-300 hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-400"
                 title="Eliminar proyecto"
+                aria-label={`Eliminar proyecto ${proyecto.nombre}`}
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </button>
-
-              {/* Flecha de navegación */}
-              <svg viewBox="0 0 16 16" className="w-4 h-4 text-[#052B59] opacity-0 group-hover:opacity-100 transition-opacity" fill="none">
-                <path d="M6 3.5L10.5 8 6 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
             </div>
           </div>
 
-          <button
-            type="button" role="switch" aria-checked={Boolean(proyecto.es_publico && esListo)}
-            aria-label={proyecto.es_publico && esListo ? "Hacer privado" : "Publicar mapa"}
-            title={!esListo ? "Marca primero el proyecto como Listo" : "Cambiar visibilidad del mapa"}
-            disabled={!esListo || cambiandoPublico}
-            onClick={handleTogglePublico}
-            className="mb-3 flex items-center gap-2 rounded-lg border border-white/30 px-3 py-1.5 text-xs font-semibold text-white hover:border-teal-300 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {proyecto.es_publico && esListo ? "🌐 Público" : "🔒 Privado"}
-            <span className={`relative h-4 w-8 rounded-full transition-colors ${proyecto.es_publico && esListo ? "bg-teal-400" : "bg-slate-500"}`}><span className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform ${proyecto.es_publico && esListo ? "translate-x-[18px]" : "translate-x-[2px]"}`} /></span>
-          </button>
-          <h3 className="text-white font-medium text-sm mb-1">{proyecto.nombre}</h3>
-          <p className="text-[#052B59] text-sm mb-3 line-clamp-1">{proyecto.descripcion || "Sin descripción"}</p>
+          <h3 className="mb-2 break-words text-lg font-extrabold leading-snug text-[#153C5B]">{proyecto.nombre}</h3>
+          <p className="mb-3 line-clamp-2 min-h-[40px] text-sm leading-5 text-[#617487]">
+            {proyecto.descripcion || "Sin descripción"}
+          </p>
           {proyecto.descripcion && (
             <button
               type="button"
@@ -132,17 +110,44 @@ const ProyectoCard = ({ proyecto, onOpen, onDelete, onToggleEstado, onTogglePubl
                 e.stopPropagation();
                 setModalDescripcionAbierto(true);
               }}
-              className="mb-3 block text-xs font-medium text-white underline underline-offset-2 hover:text-white/80"
+              className="mb-4 self-start text-xs font-bold text-[#155B91] underline-offset-4 transition-colors hover:text-[#0B3D62] hover:underline"
             >
-              Ver descripción
+              Ver descripción completa
             </button>
           )}
 
-          <span className="font-mono text-xs text-white/80">
-            {formatFecha(proyecto.fecha_modificacion)}
-          </span>
+          <div className="mt-auto border-t border-[#EDF1F5] pt-4">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={Boolean(proyecto.es_publico && esListo)}
+                aria-label={proyecto.es_publico && esListo ? "Hacer privado" : "Publicar mapa"}
+                title={!esListo ? "Marca primero el proyecto como Listo" : "Cambiar visibilidad del mapa"}
+                disabled={!esListo || cambiandoPublico}
+                onClick={handleTogglePublico}
+                className="inline-flex min-h-[38px] max-w-full items-center gap-3 rounded-xl border border-[#DCE5EC] bg-[#F8FBFD] px-3 py-2 text-xs font-bold text-[#153C5B] transition-all hover:border-[#9CC7DD] hover:bg-[#EFF7FB] disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                <span className="whitespace-nowrap">{proyecto.es_publico && esListo ? "🌐 Público" : "🔒 Privado"}</span>
+                {/* Contenedor fijo: el círculo queda siempre DENTRO, sin encogerse. */}
+                <span className={`relative inline-block h-6 w-11 shrink-0 rounded-full transition-colors ${proyecto.es_publico && esListo ? "bg-[#1EAB89]" : "bg-[#A5B4C0]"}`}>
+                  <span className={`absolute left-1 top-1 block h-4 w-4 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.18)] transition-transform duration-200 ${proyecto.es_publico && esListo ? "translate-x-5" : "translate-x-0"}`} />
+                </span>
+              </button>
+              <span className="whitespace-nowrap text-xs font-medium text-[#8294A4]">
+                {formatFecha(proyecto.fecha_modificacion)}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg bg-[#EEF5FA] px-4 py-3 text-sm font-bold text-[#155B91] transition-colors group-hover:bg-[#DDECF6]">
+              Abrir mapa de ruido
+              <svg className="h-4 w-4 transition-transform group-hover:translate-x-1" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M3 8h10m-4-4 4 4-4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          </div>
         </div>
-      </div>
+      </article>
 
       {modalDescripcionAbierto && (
         <DescripcionProyectoModal

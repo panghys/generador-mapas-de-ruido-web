@@ -82,7 +82,7 @@ const Proyecto = () => {
   };
 
   return (
-    <div className="relative min-h-screen w-full overflow-x-hidden bg-[#D1DDF2] font-sans">
+    <main className="min-h-screen bg-[#F4F7FA] px-4 py-10 font-sans text-[#243447] sm:px-7 lg:py-12">
       {/* Fondo animado WebGL — sutil, decorativo, sin capturar interacción del mouse */}
       {/* <div className="pointer-events-none fixed inset-0 z-0">
         <GradientWaves
@@ -107,54 +107,81 @@ const Proyecto = () => {
           grainIntensity={0.04}
         />
       </div>*/}
-
-      <div className="relative z-10 px-6 py-10">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-between mb-1">
-            <h1 className="text-2xl font-semibold text-[#052B59]">Mis proyectos</h1>
-            <button
-              onClick={handleNuevo}
-              className="px-4 py-2 text-sm bg-[#1C5DAC] text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
-            >
-              + Nuevo proyecto
-            </button>
+      <div className="mx-auto max-w-7xl">
+        <header className="mb-8 flex flex-col justify-between gap-6 border-b border-[#DCE5EC] pb-7 sm:flex-row sm:items-end">
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.17em] text-[#287EAB]">Gestión de estudios acústicos</p>
+            <h1 className="text-3xl font-extrabold tracking-tight text-[#153C5B] sm:text-4xl">Mis proyectos</h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-[#617487]">
+              Administra tus estudios, continúa tus mapas y comparte los proyectos con la comunidad.
+            </p>
           </div>
-          <p className="text-[#4B5563] text-sm mb-6">
-            {proyectos.length} proyectos · {listos} listo{listos !== 1 ? "s" : ""}
-          </p>
+          <button
+            type="button"
+            onClick={handleNuevo}
+            className="inline-flex min-h-[46px] items-center justify-center gap-2 self-start rounded-xl bg-[#155B91] px-5 py-3 text-sm font-bold text-white shadow-[0_7px_18px_rgba(21,91,145,0.2)] transition-all hover:-translate-y-0.5 hover:bg-[#104A75] hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#155B91] focus-visible:ring-offset-2"
+          >
+            <span className="text-xl leading-none" aria-hidden="true">+</span>
+            Nuevo proyecto
+          </button>
+        </header>
 
-          <div className="flex gap-1 mb-6">
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-[#DCE5EC] bg-white px-5 py-5 shadow-[0_4px_18px_rgba(19,54,83,0.04)]">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#718397]">Total de proyectos</p>
+            <p className="mt-3 text-3xl font-extrabold text-[#153C5B]">{proyectos.length}</p>
+          </div>
+          <div className="rounded-2xl border border-[#DCE5EC] bg-white px-5 py-5 shadow-[0_4px_18px_rgba(19,54,83,0.04)]">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#718397]">Finalizados</p>
+            <p className="mt-3 text-3xl font-extrabold text-[#17654B]">{listos}</p>
+          </div>
+          <div className="rounded-2xl border border-[#DCE5EC] bg-white px-5 py-5 shadow-[0_4px_18px_rgba(19,54,83,0.04)]">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#718397]">Borradores</p>
+            <p className="mt-3 text-3xl font-extrabold text-[#155B91]">{proyectos.filter((p) => p.estado === "borrador").length}</p>
+          </div>
+        </div>
+
+        <section className="mb-7 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-[#153C5B]">Mis Proyectos</h2>
+            <p className="mt-1 text-sm text-[#718397]">Selecciona un proyecto para abrir su mapa.</p>
+          </div>
+          <div className="inline-flex flex-wrap gap-1.5 rounded-xl border border-[#DCE5EC] bg-white p-1.5 shadow-sm" aria-label="Filtrar proyectos">
             {filtros.map((f) => (
               <button
                 key={f.valor}
+                type="button"
                 onClick={() => setFiltroActivo(f.valor)}
-                className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                aria-pressed={filtroActivo === f.valor}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#155B91] ${
                   filtroActivo === f.valor
-                    ? "bg-[#1C5DAC] text-white"
-                    : "text-[#4B5563] hover:text-[#1C5DAC]"
+                    ? "bg-[#155B91] text-white shadow-sm"
+                    : "text-[#617487] hover:bg-[#F0F6FA] hover:text-[#155B91]"
                 }`}
               >
                 {f.label}
               </button>
             ))}
           </div>
+        </section>
 
-          {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
+        {error && <p role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>}
 
-          {cargando ? (
-            <p className="text-[#052B59] text-sm">Cargando proyectos...</p>
-          ) : (
-            <ListaProyectos
-              proyectos={proyectosFiltrados}
-              onOpen={handleAbrir}
-              onDelete={handleEliminar}
-              onToggleEstado={handleCambiarEstado}
-              onTogglePublico={handleCambiarPublico}
-            />
-          )}
-        </div>
+        {cargando ? (
+          <div className="rounded-2xl border border-[#DCE5EC] bg-white p-10 text-center text-sm text-[#617487]" role="status">
+            Cargando proyectos...
+          </div>
+        ) : (
+          <ListaProyectos
+            proyectos={proyectosFiltrados}
+            onOpen={handleAbrir}
+            onDelete={handleEliminar}
+            onToggleEstado={handleCambiarEstado}
+            onTogglePublico={handleCambiarPublico}
+          />
+        )}
       </div>
-    </div>
+    </main>
   );
 };
 
