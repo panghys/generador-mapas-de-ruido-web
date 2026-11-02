@@ -14,23 +14,35 @@ export default function FondoGradientWaves({ children }) {
       >
         <GradientWaves
           className="h-full w-full"
-          horizonColor="#1d94d4"
-          waveColor="#fffefe"
-          crestColor="#6fccfb8e"
-          speed={0.4}
-          amplitude={2.8}
-          waveScale={0.6}
+
+          // Tres tonos con contraste definido
+          horizonColor="#85C8EA"
+          waveColor="#246DA9"
+          crestColor="#D5F3FF"
+
+          // Movimiento fluido
+          speed={0.28}
+
+          // Relieve marcado sin exceso de turbulencia
+          amplitude={2.7}
+          waveScale={0.65}
           waveRatio={0.9}
-          swell={35}
-          turbulence={20}
+          swell={27}
+          turbulence={12}
+
+          // Perspectiva y profundidad
           tilt={(64 * Math.PI) / 180}
           zoom={1}
           height={5.5}
-          fogDepth={20}
+          fogDepth={27}
+
+          // Apariencia
           detail="medium"
-          brightness={1.25}
-          opacity={2}
+          brightness={1.05}
+          opacity={1}
           grain={false}
+
+          // No interferir con la interfaz
           mouseInteraction={false}
           parallaxStrength={0}
         />
