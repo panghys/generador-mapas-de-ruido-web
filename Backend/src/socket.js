@@ -8,6 +8,7 @@ const TTL_BLOQUEO_MS = 3 * 60 * 1000; // 3 minutos
 
 export function initSocket(server) {
   const io = new Server(server, {
+    path: "/api/socket.io",
     cors: {
       origin: "*",
       methods: ["GET", "POST"],
