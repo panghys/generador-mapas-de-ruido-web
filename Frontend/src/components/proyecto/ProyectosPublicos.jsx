@@ -12,6 +12,10 @@ import {
   crearUrlVistaPrevia,
 } from "./exportarMapaRuido";
 
+// =====================================================
+// FUNCIONES AUXILIARES
+// =====================================================
+
 const leer = (valor) => {
   try {
     return typeof valor === "string" ? JSON.parse(valor) : valor;
@@ -20,12 +24,17 @@ const leer = (valor) => {
   }
 };
 
-const fecha = (valor) =>
-  valor
-    ? new Date(valor).toLocaleDateString("es-CL")
-    : "Sin fecha";
+const fecha = (valor) => {
+  if (!valor) return "Sin fecha";
 
-// Genera una imagen del mapa acústico real.
+  const objeto = new Date(valor);
+
+  return Number.isNaN(objeto.getTime())
+    ? "Sin fecha"
+    : objeto.toLocaleDateString("es-CL");
+};
+
+// Generar la imagen real del mapa acústico.
 async function crearMiniatura(proyecto) {
   const zona = (
     leer(proyecto.zona)?.coordinates?.[0] || []
@@ -76,7 +85,7 @@ async function crearMiniatura(proyecto) {
   return crearUrlVistaPrevia(resultado);
 }
 
-// Permite buscar proyectos por ubicación geográfica.
+// Convertir un lugar escrito en coordenadas.
 async function geocodificar(texto, signal) {
   const url = new URL(
     "https://nominatim.openstreetmap.org/search"
@@ -108,36 +117,105 @@ async function geocodificar(texto, signal) {
     : null;
 }
 
+// Esperar a que el navegador cargue una imagen.
+function esperarImagen(url) {
+  return new Promise((resolve) => {
+    const imagen = new Image();
+
+    imagen.onload = () => resolve(true);
+    imagen.onerror = () => resolve(false);
+
+    imagen.src = url;
+
+    if (imagen.complete) {
+      resolve(imagen.naturalWidth > 0);
+    }
+  });
+}
+
+// =====================================================
+// PANTALLA DE CARGA
+// =====================================================
+
+function PantallaCarga() {
+  return (
+    <div className="flex min-h-[calc(100vh-100px)] flex-col items-center justify-center bg-[#F4F7FA] px-6">
+      <div
+        className="flex items-center justify-center gap-3"
+        role="status"
+        aria-label="Cargando mapas de la comunidad"
+      >
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            aria-hidden="true"
+            style={{
+              display: "inline-block",
+              width: "14px",
+              height: "14px",
+              borderRadius: "50%",
+              backgroundColor: "#155B91",
+              animation: "puntosCarga 1.2s ease-in-out infinite",
+              animationDelay: `${i * 0.2}s`,
+            }}
+          />
+        ))}
+      </div>
+
+      <h2 className="mt-8 text-lg font-semibold text-[#153C5B]">
+        Preparando mapas de la comunidad
+      </h2>
+
+      <p className="mt-2 text-center text-sm text-[#718397]">
+        Estamos cargando los proyectos y sus mapas acústicos...
+      </p>
+
+      <style>
+        {`
+          @keyframes puntosCarga {
+            0%, 60%, 100% {
+              transform: scale(1);
+              opacity: 0.5;
+            }
+            30% {
+              transform: scale(1.45);
+              opacity: 1;
+            }
+          }
+        `}
+      </style>
+    </div>
+  );
+}
+
+// =====================================================
+// COMPONENTE PRINCIPAL
+// =====================================================
+
 export default function ProyectosPublicos() {
   const navigate = useNavigate();
 
-  // Todos los proyectos públicos.
   const [todos, setTodos] = useState([]);
-
-  // Proyectos que aparecen en el dashboard.
   const [resultados, setResultados] = useState([]);
-
-  // Imágenes reales de los mapas acústicos.
   const [miniaturas, setMiniaturas] = useState({});
 
-  // Buscador.
   const [texto, setTexto] = useState("");
   const [radio, setRadio] = useState(30);
   const [ubicacion, setUbicacion] = useState("");
 
-  // Estados de carga.
   const [cargando, setCargando] = useState(true);
   const [buscando, setBuscando] = useState(false);
   const [generando, setGenerando] = useState(false);
-  const [error, setError] = useState("");
+  const [preparandoPagina, setPreparandoPagina] =
+    useState(true);
 
-  // Carrusel.
+  const [error, setError] = useState("");
   const [indiceActivo, setIndiceActivo] = useState(0);
 
   const urlsRef = useRef({});
 
   // =====================================================
-  // 1. CARGAR TODOS LOS PROYECTOS PÚBLICOS
+  // 1. CARGAR PROYECTOS PÚBLICOS
   // =====================================================
 
   useEffect(() => {
@@ -146,6 +224,7 @@ export default function ProyectosPublicos() {
     async function cargarProyectos() {
       try {
         setCargando(true);
+        setError("");
 
         const respuesta = await clientAxios.get(
           "/proyectos/publicos",
@@ -153,6 +232,8 @@ export default function ProyectosPublicos() {
             signal: controlador.signal,
           }
         );
+
+        if (controlador.signal.aborted) return;
 
         const lista = respuesta.data.data || [];
 
@@ -180,7 +261,7 @@ export default function ProyectosPublicos() {
   }, []);
 
   // =====================================================
-  // 2. BUSCADOR EXCLUSIVO DEL DASHBOARD
+  // 2. BUSCADOR DEL DASHBOARD
   // =====================================================
 
   useEffect(() => {
@@ -194,7 +275,6 @@ export default function ProyectosPublicos() {
       setUbicacion("");
       setError("");
 
-      // Sin búsqueda: mostrar todos los proyectos.
       if (!q) {
         setResultados(todos);
         setBuscando(false);
@@ -204,8 +284,8 @@ export default function ProyectosPublicos() {
       setBuscando(true);
 
       try {
-        // Primero buscar por texto.
-        const respuesta = await clientAxios.get(
+        // Buscar coincidencias por texto.
+        const respuestaTexto = await clientAxios.get(
           "/proyectos/publicos",
           {
             params: { q },
@@ -213,51 +293,86 @@ export default function ProyectosPublicos() {
           }
         );
 
-        let lista = respuesta.data.data || [];
+        const mapasTexto = respuestaTexto.data.data || [];
 
-        // Si no hay coincidencias, intentar por ubicación.
-        if (!lista.length) {
-          const lugar = await geocodificar(
+        // Buscar SIEMPRE por ubicación geográfica.
+        let mapasCercanos = [];
+        let lugarEncontrado = null;
+
+        try {
+          lugarEncontrado = await geocodificar(
             q,
             controlador.signal
           );
 
-          if (lugar) {
-            const cerca = await clientAxios.get(
+          if (lugarEncontrado) {
+            const respuestaGeo = await clientAxios.get(
               "/proyectos/publicos",
               {
                 params: {
-                  lat: lugar.lat,
-                  lng: lugar.lng,
+                  lat: lugarEncontrado.lat,
+                  lng: lugarEncontrado.lng,
                   radio,
                 },
                 signal: controlador.signal,
               }
             );
 
-            lista = (cerca.data.data || []).sort(
-              (a, b) =>
-                Number(a.distancia_km ?? Infinity) -
-                Number(b.distancia_km ?? Infinity)
-            );
-
-            if (!controlador.signal.aborted) {
-              setUbicacion(lugar.nombre);
-            }
+            mapasCercanos = respuestaGeo.data.data || [];
           }
+        } catch (errorGeo) {
+          if (controlador.signal.aborted) return;
+
+          console.warn(
+            "Búsqueda geográfica no disponible:",
+            errorGeo
+          );
         }
 
-        if (!controlador.signal.aborted) {
-          setResultados(lista);
+        if (controlador.signal.aborted) return;
+
+        // Unir resultados sin duplicados.
+        const proyectosUnicos = new Map();
+
+        mapasCercanos.forEach((mapa) => {
+          proyectosUnicos.set(mapa.id, mapa);
+        });
+
+        mapasTexto.forEach((mapa) => {
+          if (!proyectosUnicos.has(mapa.id)) {
+            proyectosUnicos.set(mapa.id, mapa);
+          }
+        });
+
+        // Ordenar por distancia geográfica.
+        const listaFinal = Array.from(
+          proyectosUnicos.values()
+        ).sort((a, b) => {
+          const distanciaA =
+            a.distancia_km == null
+              ? Infinity
+              : Number(a.distancia_km);
+
+          const distanciaB =
+            b.distancia_km == null
+              ? Infinity
+              : Number(b.distancia_km);
+
+          return distanciaA - distanciaB;
+        });
+
+        setResultados(listaFinal);
+
+        if (lugarEncontrado) {
+          setUbicacion(lugarEncontrado.nombre);
         }
       } catch (err) {
         if (
           err.name !== "CanceledError" &&
-          err.name !== "AbortError"
+          err.name !== "AbortError" &&
+          !controlador.signal.aborted
         ) {
-          setError(
-            "No se pudo completar la búsqueda."
-          );
+          setError("No se pudo completar la búsqueda.");
         }
       } finally {
         if (!controlador.signal.aborted) {
@@ -273,21 +388,28 @@ export default function ProyectosPublicos() {
   }, [texto, radio, todos, cargando]);
 
   // =====================================================
-  // 3. GENERAR MINIATURAS REALES DE LOS MAPAS
+  // 3. GENERAR TODAS LAS MINIATURAS
   // =====================================================
 
   useEffect(() => {
+    if (cargando) return;
+
     let cancelado = false;
     const controlador = new AbortController();
 
     async function cargarMiniaturas() {
       setGenerando(true);
+      setPreparandoPagina(true);
 
       for (const mapa of todos) {
         if (cancelado) break;
 
-        // No generar dos veces la misma imagen.
-        if (urlsRef.current[mapa.id]) continue;
+        const urlExistente = urlsRef.current[mapa.id];
+
+        if (urlExistente) {
+          await esperarImagen(urlExistente);
+          continue;
+        }
 
         try {
           const respuesta = await clientAxios.get(
@@ -296,6 +418,8 @@ export default function ProyectosPublicos() {
               signal: controlador.signal,
             }
           );
+
+          if (cancelado) break;
 
           const url = await crearMiniatura(
             respuesta.data.data
@@ -308,18 +432,44 @@ export default function ProyectosPublicos() {
             break;
           }
 
-          if (url) {
-            urlsRef.current[mapa.id] = url;
-
-            setMiniaturas((anteriores) => ({
-              ...anteriores,
-              [mapa.id]: url,
-            }));
+          if (!url) {
+            console.warn(
+              `El proyecto ${mapa.id} no tiene vista previa.`
+            );
+            continue;
           }
+
+          const imagenCargada = await esperarImagen(url);
+
+          if (cancelado) {
+            if (url.startsWith("blob:")) {
+              URL.revokeObjectURL(url);
+            }
+            break;
+          }
+
+          if (!imagenCargada) {
+            console.warn(
+              `No se pudo cargar la imagen del proyecto ${mapa.id}.`
+            );
+
+            if (url.startsWith("blob:")) {
+              URL.revokeObjectURL(url);
+            }
+
+            continue;
+          }
+
+          urlsRef.current[mapa.id] = url;
+
+          setMiniaturas((anteriores) => ({
+            ...anteriores,
+            [mapa.id]: url,
+          }));
         } catch (err) {
           if (!cancelado) {
             console.error(
-              "Miniatura no disponible:",
+              "Error al preparar el mapa:",
               mapa.id,
               err
             );
@@ -329,6 +479,7 @@ export default function ProyectosPublicos() {
 
       if (!cancelado) {
         setGenerando(false);
+        setPreparandoPagina(false);
       }
     }
 
@@ -338,9 +489,9 @@ export default function ProyectosPublicos() {
       cancelado = true;
       controlador.abort();
     };
-  }, [todos]);
+  }, [todos, cargando]);
 
-  // Liberar imágenes temporales.
+  // Liberar imágenes temporales al salir.
   useEffect(() => {
     return () => {
       Object.values(urlsRef.current).forEach((url) => {
@@ -355,9 +506,6 @@ export default function ProyectosPublicos() {
   // 4. DATOS DEL CARRUSEL
   // =====================================================
 
-  // Importante:
-  // El carrusel utiliza TODOS los proyectos,
-  // no los resultados del buscador.
   const destacados = useMemo(() => {
     return todos
       .filter((mapa) => miniaturas[mapa.id])
@@ -373,27 +521,51 @@ export default function ProyectosPublicos() {
       }));
   }, [todos, miniaturas]);
 
+  const abrirProyecto = (id) => {
+    if (id !== undefined && id !== null) {
+      navigate(`/comunidad/${id}`);
+    }
+  };
+
   // =====================================================
-  // 5. INTERFAZ
+  // 5. PANTALLA DE CARGA INICIAL
+  // =====================================================
+
+  if (cargando || preparandoPagina) {
+    return <PantallaCarga />;
+  }
+
+  // =====================================================
+  // 6. INTERFAZ DE COMUNIDAD
   // =====================================================
 
   return (
-    <main className="min-h-screen bg-[#0F1417] px-4 py-10 text-[#EDEFF0] sm:px-8">
-      <div className="mx-auto max-w-7xl">
+    <main className="min-h-screen bg-[#F4F7FA] text-[#243447]">
+
+      <div className="h-1.5 w-full bg-[#155B91]" />
+
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-8">
 
         {/* ENCABEZADO */}
 
-        <header className="mb-8">
-          <p className="mb-2 text-xs font-bold uppercase tracking-[.22em] text-teal-400">
-            Explorar · Comunidad
-          </p>
+        <header className="mb-10 border-b border-[#DCE5EC] pb-8">
 
-          <h1 className="text-3xl font-bold sm:text-4xl">
-            Mapas públicos de la comunidad
+          <div className="mb-4 flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#287EAB]" />
+
+            <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#287EAB]">
+              Plataforma de mapas de ruido
+            </span>
+          </div>
+
+          <h1 className="text-3xl font-bold tracking-tight text-[#153C5B] sm:text-4xl">
+            Comunidad de mapas acústicos
           </h1>
 
-          <p className="mt-3 text-sm text-slate-400">
-            Descubre mapas acústicos y consulta sus
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-[#617487] sm:text-base">
+            Explora proyectos de cartografía acústica
+            compartidos por la comunidad. Consulta los
+            mapas de ruido generados y accede a sus
             reportes públicos.
           </p>
         </header>
@@ -403,164 +575,244 @@ export default function ProyectosPublicos() {
             ========================================== */}
 
         {destacados.length > 0 && (
-          <section className="mx-auto mb-10 max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-[#171D21] px-3 py-5 sm:px-6">
+          <section className="mb-12 overflow-hidden rounded-2xl border border-[#DCE5EC] bg-white shadow-[0_8px_28px_rgba(19,54,83,0.06)]">
 
-            <div className="text-center">
-              <h2 className="text-lg font-semibold">
+            <div className="border-b border-[#E7EDF2] px-6 py-5 text-center">
+
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#287EAB]">
+                Galería de proyectos
+              </span>
+
+              <h2 className="mt-2 text-xl font-bold text-[#153C5B]">
                 Mapas destacados
               </h2>
 
-              <p className="mt-1 text-xs text-slate-400">
-                Gira el carrusel y selecciona un proyecto
-                para explorarlo
+              <p className="mt-2 text-sm text-[#718397]">
+                Explora los estudios acústicos de nuestra comunidad.
               </p>
             </div>
 
-            <div className="relative mx-auto h-[310px] w-full sm:h-[350px]">
-              <CircularCarousel
-                items={destacados}
-                preset="orbit"
-                intro="assemble"
-                cardWidth={185}
-                aspectRatio={1.25}
-                gap={22}
-                curve={0}
-                tilt={-8}
-                perspective={1500}
-                autoplay="drift"
-                speed={4}
-                direction="left"
-                captions
-                draggable
-                snap
-                pauseOnHover
-                focusOnClick
-                parallax={0.12}
-                stretch={0.1}
-                depthFade={0.3}
-                fadeColor="#171D21"
-                innerShade={0.3}
-                cornerRadius={12}
-                onChange={setIndiceActivo}
-                onItemClick={(item) => {
-                  if (item?.id != null) {
-                    navigate(`/comunidad/${item.id}`);
-                  }
-                }}
-              />
+            <div className="mx-auto max-w-4xl px-3 pt-3 sm:px-6">
+
+              <div className="relative h-[340px] w-full sm:h-[380px]">
+
+                <CircularCarousel
+                  items={destacados}
+                  preset="orbit"
+                  intro="none"
+                  cardWidth={250}
+                  aspectRatio={1.15}
+                  gap={18}
+                  curve={0}
+                  tilt={0}
+                  perspective={1500}
+                  autoplay="drift"
+                  speed={4}
+                  direction="left"
+                  captions
+                  draggable
+                  snap
+                  pauseOnHover
+                  focusOnClick
+                  parallax={0.12}
+                  stretch={0.1}
+                  depthFade={0.2}
+                  fadeColor="#FFFFFF"
+                  innerShade={0.15}
+                  cornerRadius={10}
+                  onChange={setIndiceActivo}
+                  onItemClick={(item) => {
+                    abrirProyecto(item?.id);
+                  }}
+                />
+              </div>
             </div>
 
-            <p className="mt-1 text-center text-xs text-slate-500">
-              {destacados[indiceActivo]?.title ||
-                "Mapas públicos"}
-            </p>
+            <div className="border-t border-[#EDF1F5] bg-[#F9FBFD] px-5 py-4 text-center">
+
+              <p className="text-sm font-semibold text-[#153C5B]">
+                {destacados[indiceActivo]?.title ||
+                  "Mapas públicos"}
+              </p>
+
+              <p className="mt-1 text-xs text-[#718397]">
+                Arrastra para explorar · Haz clic para abrir
+              </p>
+            </div>
           </section>
         )}
 
         {/* ==========================================
-            BUSCADOR DEL DASHBOARD
+            ENCABEZADO DEL DASHBOARD
             ========================================== */}
 
-        <section className="mb-6 rounded-2xl border border-white/10 bg-[#171D21] p-5">
+        <section className="mb-7">
 
-          <h2 className="mb-3 text-xl font-semibold">
-            Explorar todos los mapas
-          </h2>
+          <div className="mb-6 flex flex-col justify-between gap-3 border-b border-[#DCE5EC] pb-5 sm:flex-row sm:items-end">
 
-          <div className="flex flex-col gap-3 sm:flex-row">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#287EAB]">
+                Catálogo público
+              </span>
 
-            <input
-              type="search"
-              aria-label="Buscar proyectos del dashboard"
-              value={texto}
-              onChange={(e) =>
-                setTexto(e.target.value)
-              }
-              placeholder="Buscar por nombre, descripción, comuna o lugar..."
-              className="min-w-0 flex-1 rounded-xl border border-white/15 bg-[#0F1417] px-4 py-3 text-sm text-white outline-none focus:border-teal-400"
-            />
+              <h2 className="mt-2 text-2xl font-bold text-[#153C5B]">
+                Explorar mapas de ruido
+              </h2>
 
-            <label className="flex items-center gap-3 rounded-xl border border-white/10 px-4 text-sm text-slate-300">
-              Radio geográfico
+              <p className="mt-2 text-sm text-[#718397]">
+                Encuentra estudios acústicos por nombre
+                o ubicación geográfica.
+              </p>
+            </div>
 
-              <select
-                value={radio}
-                onChange={(e) =>
-                  setRadio(Number(e.target.value))
-                }
-                className="bg-[#171D21] py-3 text-white"
-              >
-                {[5, 10, 30, 50, 100].map((n) => (
-                  <option key={n} value={n}>
-                    {n} km
-                  </option>
-                ))}
-              </select>
-            </label>
+            <span className="inline-flex w-fit items-center rounded-full border border-[#CFE2EE] bg-[#EAF4FA] px-4 py-2 text-xs font-semibold text-[#155B91]">
+              {todos.length} proyectos públicos
+            </span>
           </div>
 
-          {ubicacion && (
-            <p className="mt-2 text-xs text-teal-300">
-              Resultados cercanos a {ubicacion}
+          {/* ==========================================
+              BUSCADOR
+              ========================================== */}
+
+          <div className="rounded-2xl border border-[#DCE5EC] bg-white p-5 shadow-[0_4px_18px_rgba(19,54,83,0.04)]">
+
+            <label
+              htmlFor="buscar-mapas-publicos"
+              className="mb-3 block text-sm font-semibold text-[#153C5B]"
+            >
+              Buscar en el catálogo
+            </label>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+
+              <div className="relative flex-1">
+
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="19"
+                  height="19"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8294A4]"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+
+                <input
+                  id="buscar-mapas-publicos"
+                  type="search"
+                  value={texto}
+                  onChange={(e) => setTexto(e.target.value)}
+                  placeholder="Buscar por nombre, comuna o lugar..."
+                  className="w-full rounded-xl border border-[#D7E1E9] bg-[#FAFCFE] py-3 pl-12 pr-4 text-sm text-[#243447] outline-none transition focus:border-[#287EAB] focus:ring-2 focus:ring-[#287EAB]/10"
+                />
+              </div>
+
+              <label className="flex items-center justify-between gap-3 rounded-xl border border-[#D7E1E9] bg-[#FAFCFE] px-4 text-sm text-[#52697C]">
+
+                Radio geográfico
+
+                <select
+                  value={radio}
+                  onChange={(e) =>
+                    setRadio(Number(e.target.value))
+                  }
+                  className="cursor-pointer bg-transparent py-3 font-semibold text-[#155B91] outline-none"
+                >
+                  {[5, 10, 30, 50, 100].map((n) => (
+                    <option key={n} value={n}>
+                      {n} km
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {ubicacion && (
+              <p className="mt-3 text-xs font-medium text-[#287EAB]">
+                Resultados cercanos a {ubicacion}
+              </p>
+            )}
+
+            <p className="mt-3 text-xs text-[#8A9BA9]">
+              La búsqueda filtra los mapas del catálogo.
+              La galería superior permanece independiente.
             </p>
-          )}
+          </div>
         </section>
 
-        {/* ERRORES */}
+        {/* ==========================================
+            ESTADO DE RESULTADOS
+            ========================================== */}
 
         {error && (
-          <p
+          <div
             role="alert"
-            className="mb-4 text-sm text-red-300"
+            className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
           >
             {error}
-          </p>
+          </div>
         )}
 
-        {/* ESTADO DEL DASHBOARD */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
 
-        <div className="mb-5 flex items-center justify-between gap-3">
-
-          <p className="text-sm text-slate-400">
-            {cargando || buscando
-              ? "Buscando..."
-              : `${resultados.length} mapa(s) en el dashboard`}
+          <p className="text-sm font-medium text-[#617487]">
+            {buscando
+              ? "Buscando proyectos..."
+              : `${resultados.length} ${
+                  resultados.length === 1
+                    ? "mapa disponible"
+                    : "mapas disponibles"
+                }`}
           </p>
 
           {generando && (
-            <p className="text-xs text-teal-300">
-              Generando vistas previas...
-            </p>
+            <span className="inline-flex items-center gap-2 text-xs font-medium text-[#287EAB]">
+              Preparando vistas previas...
+            </span>
           )}
         </div>
 
         {/* SIN RESULTADOS */}
 
-        {!cargando &&
-          !buscando &&
+        {!buscando &&
           resultados.length === 0 && (
-            <p className="rounded-2xl border border-dashed border-white/20 p-12 text-center text-slate-400">
-              No se encontraron mapas para esta búsqueda.
-            </p>
+            <div className="rounded-2xl border border-dashed border-[#CEDBE5] bg-white px-6 py-16 text-center">
+
+              <h3 className="text-lg font-semibold text-[#153C5B]">
+                No encontramos mapas
+              </h3>
+
+              <p className="mt-2 text-sm text-[#718397]">
+                Prueba con otro nombre de proyecto
+                o una ubicación diferente.
+              </p>
+            </div>
           )}
 
         {/* ==========================================
-            DASHBOARD DE MAPAS PÚBLICOS
+            DASHBOARD DE MAPAS
             ========================================== */}
 
         <section
           className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3"
           aria-label="Dashboard de mapas públicos"
         >
+
           {resultados.map((mapa) => (
             <article
               key={mapa.id}
-              className="overflow-hidden rounded-2xl border border-white/10 bg-[#171D21]"
+              className="group overflow-hidden rounded-2xl border border-[#DCE5EC] bg-white shadow-[0_5px_20px_rgba(19,54,83,0.05)] transition-all duration-300 hover:-translate-y-1 hover:border-[#B7D1E2] hover:shadow-[0_14px_32px_rgba(19,54,83,0.10)]"
             >
 
-              {/* MAPA COMPLETO SIN DISTORSIÓN */}
+              {/* IMAGEN COMPLETA DEL MAPA */}
 
-              <div className="flex h-56 items-center justify-center bg-[#10171B] p-3">
+              <div className="relative flex h-60 items-center justify-center overflow-hidden border-b border-[#E7EDF2] bg-[#EDF3F7] p-3">
 
                 {miniaturas[mapa.id] ? (
                   <img
@@ -570,69 +822,109 @@ export default function ProyectosPublicos() {
                     loading="lazy"
                   />
                 ) : (
-                  <span className="text-center text-xs text-slate-500">
-                    {generando
-                      ? "Preparando mapa..."
-                      : "Vista previa no disponible"}
-                  </span>
+                  <div className="text-center text-sm text-[#8294A4]">
+                    Vista previa no disponible
+                  </div>
                 )}
+
+                <span className="absolute left-4 top-4 rounded-md border border-[#DCE5EC] bg-white/95 px-3 py-1.5 text-[11px] font-bold text-[#155B91] shadow-sm">
+                  MAPA PÚBLICO
+                </span>
               </div>
 
               {/* INFORMACIÓN DEL PROYECTO */}
 
-              <div className="p-5">
+              <div className="p-6">
 
-                <span className="text-xs font-semibold text-teal-300">
-                  Público · Listo
-                </span>
+                <div className="mb-3 flex items-center gap-2">
 
-                <h3 className="mt-2 text-lg font-semibold text-white">
+                  <span className="h-2 w-2 rounded-full bg-[#3A9B73]" />
+
+                  <span className="text-xs font-semibold text-[#3A8067]">
+                    Proyecto finalizado
+                  </span>
+                </div>
+
+                <h3 className="text-lg font-bold leading-snug text-[#153C5B]">
                   {mapa.nombre}
                 </h3>
 
-                <p className="mt-2 text-xs text-slate-400">
-                  📍{" "}
-                  {[mapa.comuna, mapa.region]
-                    .filter(Boolean)
-                    .join(", ") ||
-                    "Ubicación no especificada"}
-                </p>
+                <div className="mt-3 flex items-start gap-2 text-sm text-[#617487]">
 
-                <p className="mt-3 line-clamp-2 min-h-10 text-sm text-slate-400">
+                  <span aria-hidden="true">📍</span>
+
+                  <span>
+                    {[mapa.comuna, mapa.region]
+                      .filter(Boolean)
+                      .join(", ") ||
+                      "Ubicación no especificada"}
+                  </span>
+                </div>
+
+                <p className="mt-4 line-clamp-3 min-h-[60px] text-sm leading-6 text-[#718397]">
                   {mapa.descripcion ||
-                    "Estudio acústico sin descripción."}
+                    "Estudio acústico compartido con la comunidad para consulta pública."}
                 </p>
 
-                <p className="mt-3 text-xs text-slate-500">
-                  Por{" "}
-                  {mapa.usuario?.name || "Comunidad"}
-                  {" · "}
-                  {fecha(mapa.fecha_modificacion)}
-                </p>
+                <div className="mt-5 border-t border-[#EDF1F5] pt-4">
 
-                {mapa.distancia_km != null && (
-                  <p className="mt-2 text-xs text-teal-300">
-                    Aprox. {mapa.distancia_km} km
-                    del lugar buscado
-                  </p>
-                )}
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#8294A4]">
 
-                {/* BOTÓN PARA ABRIR EL REPORTE */}
+                    <span>
+                      {mapa.usuario?.name || "Comunidad"}
+                    </span>
+
+                    <span>
+                      {fecha(mapa.fecha_modificacion)}
+                    </span>
+                  </div>
+
+                  {mapa.distancia_km != null && (
+                    <p className="mt-2 text-xs font-medium text-[#287EAB]">
+                      Aprox. {mapa.distancia_km} km
+                      del lugar buscado
+                    </p>
+                  )}
+                </div>
 
                 <button
                   type="button"
                   onClick={() =>
-                    navigate(`/comunidad/${mapa.id}`)
+                    abrirProyecto(mapa.id)
                   }
-                  className="mt-5 w-full rounded-xl bg-teal-400 px-4 py-3 text-sm font-bold text-[#0F1417] hover:bg-teal-300"
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-[#155B91] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#0F456E] focus:outline-none focus:ring-2 focus:ring-[#287EAB] focus:ring-offset-2"
                 >
-                  Ver mapa completo y reporte →
+                  Ver mapa y reporte
+
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M5 12h14" />
+                    <path d="m12 5 7 7-7 7" />
+                  </svg>
                 </button>
               </div>
             </article>
           ))}
         </section>
 
+        {/* PIE DE COMUNIDAD */}
+
+        <footer className="mt-14 border-t border-[#DCE5EC] pt-6">
+          <p className="text-center text-xs leading-6 text-[#8294A4]">
+            Plataforma de mapas de ruido ·
+            Consulta pública de estudios acústicos
+          </p>
+        </footer>
       </div>
     </main>
   );
