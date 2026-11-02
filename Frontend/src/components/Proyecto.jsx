@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import ListaProyectos from "./proyecto/ListaProyectos";
 import clientAxios from "./config/clienteAxios";
-import GradientWaves from "./ui/GradientWaves";
 
 const filtros = [
   { valor: "todos", label: "Todos" },
@@ -16,8 +15,9 @@ const Proyecto = () => {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const [filtroActivo, setFiltroActivo] = useState("todos");
+  const cargaProyectosRef = useRef(null);
 
-  const cargarProyectos = async () => {
+  const cargarProyectos = useCallback(async () => {
     setCargando(true);
     setError("");
     try {
@@ -28,11 +28,15 @@ const Proyecto = () => {
     } finally {
       setCargando(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    cargarProyectos();
-  }, []);
+    if (!cargaProyectosRef.current) {
+      cargaProyectosRef.current = cargarProyectos().finally(() => {
+        cargaProyectosRef.current = null;
+      });
+    }
+  }, [cargarProyectos]);
 
   const proyectosFiltrados =
     filtroActivo === "todos" ? proyectos : proyectos.filter((p) => p.estado === filtroActivo);
