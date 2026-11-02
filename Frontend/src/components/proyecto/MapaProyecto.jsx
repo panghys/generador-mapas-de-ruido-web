@@ -210,6 +210,8 @@ const MapaProyecto = () => {
   const [actividades, setActividades] = useState([]);
   const [, setBloqueos] = useState([]);
   const bloqueosRef = useRef([]);
+  const socketRoomRef = useRef(null);
+  const socketCleanupTimerRef = useRef(null);
   const calleBloqueoSolicitadoRef = useRef(null);
   const cargasProyectoRef = useRef(new Map());
   const cargasCallesRef = useRef(new Map());
@@ -320,6 +322,8 @@ const MapaProyecto = () => {
   useEffect(() => {
     if (!proyectoId) return undefined;
     const usuario = obtenerUsuarioActual();
+    const proyectoIdActual = String(proyectoId);
+    const usuarioIdActual = String(usuarioActual.id);
     const alActualizarPresencia = usuarios => {
       setUsuariosConectados(Array.isArray(usuarios) ? usuarios : []);
     };
@@ -435,15 +439,35 @@ const MapaProyecto = () => {
     socket.on("calle_liberada", alLiberarCalle);
     socket.on("bloqueo_rechazado", alRechazarBloqueo);
     socket.on("calle_sincronizada", alSincronizarCalle);
-    socket.connect();
-    socket.emit("unirse_proyecto", {
-      proyectoId,
-      usuario
-    });
-    return () => {
+
+    if (socketCleanupTimerRef.current !== null) {
+      clearTimeout(socketCleanupTimerRef.current);
+      socketCleanupTimerRef.current = null;
+    }
+    const salaActual = socketRoomRef.current;
+    const mismaSala = salaActual?.proyectoId === proyectoIdActual
+      && salaActual?.usuarioId === usuarioIdActual;
+    if (salaActual && !mismaSala) {
       socket.emit("salir_proyecto", {
-        proyectoId
+        proyectoId: salaActual.proyectoId
       });
+      socketRoomRef.current = null;
+      bloqueosRef.current = [];
+      setBloqueos([]);
+      setUsuariosConectados([]);
+    }
+    socket.connect();
+    if (!mismaSala) {
+      socketRoomRef.current = {
+        proyectoId: proyectoIdActual,
+        usuarioId: usuarioIdActual
+      };
+      socket.emit("unirse_proyecto", {
+        proyectoId,
+        usuario
+      });
+    }
+    return () => {
       socket.off("actualizar_presencia", alActualizarPresencia);
       socket.off("nueva_actividad", alRecibirActividad);
       socket.off("estado_bloqueos", alRecibirBloqueos);
@@ -451,14 +475,22 @@ const MapaProyecto = () => {
       socket.off("calle_liberada", alLiberarCalle);
       socket.off("bloqueo_rechazado", alRechazarBloqueo);
       socket.off("calle_sincronizada", alSincronizarCalle);
-      socket.disconnect();
-      bloqueosRef.current = [];
-      setBloqueos([]);
-      setUsuariosConectados([]);
+      socketCleanupTimerRef.current = setTimeout(() => {
+        socketCleanupTimerRef.current = null;
+        const salaPendiente = socketRoomRef.current;
+        if (salaPendiente?.proyectoId !== proyectoIdActual
+          || salaPendiente?.usuarioId !== usuarioIdActual) return;
+        socket.emit("salir_proyecto", {
+          proyectoId: proyectoIdActual
+        });
+        socket.disconnect();
+        socketRoomRef.current = null;
+        bloqueosRef.current = [];
+      }, 0);
     };
-    // The socket subscription is scoped to the project; handlers use current refs for map helpers.
+    // The socket subscription is scoped to stable project/user IDs; handlers use refs for current map data.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [proyectoId, proyecto?.id]);
+  }, [proyectoId, usuarioActual.id]);
   useEffect(() => {
     let activo = true;
     if (!proyectoId) {
@@ -575,7 +607,7 @@ const MapaProyecto = () => {
     };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [proyectoId]);
+  }, [proyectoId, proyecto?.id]);
   useEffect(() => {
     const map = mapInstance.current;
     if (!map) return;
