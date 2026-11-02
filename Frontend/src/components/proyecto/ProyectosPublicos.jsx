@@ -542,7 +542,6 @@ export default function ProyectosPublicos() {
   return (
     <main className="min-h-screen bg-[#F4F7FA] text-[#243447]">
 
-      <div className="h-1.5 w-full bg-[#155B91]" />
 
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-8">
 

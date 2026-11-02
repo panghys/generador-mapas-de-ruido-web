@@ -1,0 +1,108 @@
+
+/* =========================================
+   CONTENEDOR PRINCIPAL
+========================================= */
+
+.fondo-gradient-waves {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  background-color: #f4f8fc;
+}
+
+/* =========================================
+   FONDO ANIMADO
+========================================= */
+
+.fondo-gradient-waves__escena {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+
+  overflow: hidden;
+  pointer-events: none;
+
+  background: linear-gradient(
+    180deg,
+    #eef6fc 0%,
+    #c5e4f5 55%,
+    #81b7d9 100%
+  );
+}
+
+/* =========================================
+   CANVAS WEBGL
+========================================= */
+
+.fondo-gradient-waves__escena > div {
+  width: 100%;
+  height: 100%;
+}
+
+.fondo-gradient-waves__escena canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* =========================================
+   CONTRASTE DE LA INTERFAZ
+
+   Mayor claridad detrás de los títulos.
+
+   Las ondas conservan sus colores
+   en el centro y la parte inferior.
+========================================= */
+
+.fondo-gradient-waves__escena::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  pointer-events: none;
+
+  background: linear-gradient(
+    180deg,
+    rgba(248, 251, 255, 0.82) 0%,
+    rgba(248, 251, 255, 0.62) 20%,
+    rgba(248, 251, 255, 0.26) 45%,
+    rgba(248, 251, 255, 0.12) 75%,
+    rgba(248, 251, 255, 0.10) 100%
+  );
+}
+
+/* =========================================
+   CONTENIDO DEL SITIO
+========================================= */
+
+.fondo-gradient-waves__contenido {
+  position: relative;
+  z-index: 1;
+
+  min-height: 100vh;
+  width: 100%;
+
+  background: transparent;
+}
+
+/* Solo el fondo raíz de las vistas,
+   sin alterar las tarjetas blancas */
+
+.fondo-gradient-waves__contenido > main,
+.fondo-gradient-waves__contenido > div {
+  background-color: transparent !important;
+}
+
+/* =========================================
+   ACCESIBILIDAD
+========================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .fondo-gradient-waves__escena canvas {
+    visibility: hidden;
+  }
+}

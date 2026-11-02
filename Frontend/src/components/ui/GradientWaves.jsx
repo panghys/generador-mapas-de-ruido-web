@@ -293,7 +293,7 @@ const GradientWaves = ({
       try {
         container.removeChild(canvas);
       } catch {}
-      gl.getExtension('WEBGL_lose_context')?.loseContext();
+      
     };
   }, []);
 

@@ -1119,7 +1119,7 @@ const MapaProyecto = () => {
 
   <p>Proyecto no encontrado.</p>
 
-  <button onClick={() => navigate("/proyectos")} className="mt-4 text-sm text-[#1C5DAC]t">
+  <button onClick={() => navigate("/proyectos")} className="text-sm text-[#155B91]">
 
   Volver a proyectos
 
@@ -1127,11 +1127,11 @@ const MapaProyecto = () => {
 
   </main>;
   }
-  return <main className="min-h-screen bg-[#D1DDF2] px-4 pt-8 pb-32 font-sans text-[#052B59]">
+  return <main className="labacam-map-editor min-h-screen bg-[#F4F7FA] px-4 pt-8 pb-32 font-sans text-[#153C5B]">
 
   <div className="mx-auto w-full max-w-[1600px]">
 
-  <div className="mb-6 flex items-center justify-between gap-3">
+  <div className="labacam-map-toolbar mb-6 flex items-center justify-between gap-3">
   <button onClick={() => navigate("/proyectos")} className="text-sm text-[#4B5563] hover:text-[#1C5DAC]">
   ← Volver a proyectos
   </button>
@@ -1155,7 +1155,7 @@ const MapaProyecto = () => {
   </div>
   </div>
 
-  <div className="mb-6">
+  <div className="labacam-map-heading mb-6">
 
   <div className="mb-2 flex items-center gap-3">
 
@@ -1179,11 +1179,11 @@ const MapaProyecto = () => {
 
   </div>
 
-  <div className="flex items-start gap-4">
+  <div className="labacam-map-workspace flex items-start gap-4">
 
   <div className="min-w-0 flex-1">
 
-  <div className="mb-3 flex gap-2">
+  <div className="labacam-map-search mb-3 flex gap-2">
 
   <input type="text" value={coordenadas} onChange={e => {
               setCoordenadas(e.target.value);
@@ -1236,7 +1236,7 @@ const MapaProyecto = () => {
 
   </div>}
 
-  <section className="relative h-[78vh] min-h-[600px] overflow-hidden border border-dash-border">
+  <section className="labacam-map-canvas relative h-[78vh] min-h-[600px] overflow-hidden border border-dash-border">
 
   <div ref={mapRef} className="h-full w-full" />
 
@@ -1248,7 +1248,7 @@ const MapaProyecto = () => {
 
   </div>
 
-  <div className="flex w-64 flex-col gap-y-4">
+  <div className="labacam-tools-sidebar flex w-64 flex-col gap-y-4">
 
   <div className="border border-slate-300 bg-white/70 rounded-lg p-3">
 

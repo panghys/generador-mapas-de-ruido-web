@@ -1,19 +1,22 @@
+
 import React, { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
-import GradientWaves from "./ui/GradientWaves";
+import Topography from "./ui/Topography";
 
-
-// Misma lógica de URL del backend que usa el login con Google (local -> :4003)
+// Mantiene la conexión actual con el Backend.
 const obtenerBaseUrl = () => {
   const isLocal =
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1";
+
   const backendUrl = isLocal
     ? "http://localhost:4003"
     : import.meta.env.VITE_BACKEND_URL || "http://localhost:4003";
 
-  return backendUrl.endsWith("/") ? backendUrl.slice(0, -1) : backendUrl;
+  return backendUrl.endsWith("/")
+    ? backendUrl.slice(0, -1)
+    : backendUrl;
 };
 
 const Login = () => {
@@ -23,7 +26,8 @@ const Login = () => {
   const [nombre, setNombre] = useState("");
   const [mail, setMail] = useState("");
   const [contrasena, setContrasena] = useState("");
-  const [confirmarContrasena, setConfirmarContrasena] = useState("");
+  const [confirmarContrasena, setConfirmarContrasena] =
+    useState("");
   const [error, setError] = useState(null);
 
   const handleSubmit = async (event) => {
@@ -31,37 +35,35 @@ const Login = () => {
     setError(null);
 
     if (modoRegistro) {
-      if (!nombre.trim() || !mail.trim() || !contrasena.trim() || !confirmarContrasena.trim()) {
+      if (
+        !nombre.trim() ||
+        !mail.trim() ||
+        !contrasena.trim() ||
+        !confirmarContrasena.trim()
+      ) {
         setError("Completa los datos solicitados");
         return;
       }
+
       if (contrasena !== confirmarContrasena) {
         setError("Las contraseñas no coinciden");
         return;
       }
-    } else {
-      if (!mail.trim() || !contrasena.trim()) {
-        setError("Completa los datos solicitados");
-        return;
-      }
+    } else if (!mail.trim() || !contrasena.trim()) {
+      setError("Completa los datos solicitados");
+      return;
     }
 
     try {
       const baseUrl = obtenerBaseUrl();
+
       const endpoint = modoRegistro
         ? `${baseUrl}/api/auth/register`
         : `${baseUrl}/api/auth/login`;
 
       const body = modoRegistro
-        ? {
-            name: nombre,
-            mail,
-            password: contrasena,
-          }
-        : {
-            mail,
-            password: contrasena,
-          };
+        ? { name: nombre, mail, password: contrasena }
+        : { mail, password: contrasena };
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -75,7 +77,10 @@ const Login = () => {
 
       if (data.status) {
         localStorage.setItem("token", data.data.token);
-        localStorage.setItem("user", JSON.stringify(data.data.user));
+        localStorage.setItem(
+          "user",
+          JSON.stringify(data.data.user)
+        );
 
         navigate("/proyectos");
       } else {
@@ -94,29 +99,40 @@ const Login = () => {
 
   const handleSuccess = async (credentialResponse) => {
     try {
-      // Si estamos en local, enviamos la petición a nuestro backend local (puerto 4003)
-      const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-      const backendUrl = isLocal 
-        ? "http://localhost:4003" 
-        : (import.meta.env.VITE_BACKEND_URL || "http://localhost:4003");
+      const isLocal =
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1";
 
-      const baseUrl = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
+      const backendUrl = isLocal
+        ? "http://localhost:4003"
+        : import.meta.env.VITE_BACKEND_URL ||
+          "http://localhost:4003";
 
-      const res = await fetch(`${baseUrl}/api/auth/google`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          credential: credentialResponse.credential,
-        }),
-      });
+      const baseUrl = backendUrl.endsWith("/")
+        ? backendUrl.slice(0, -1)
+        : backendUrl;
+
+      const res = await fetch(
+        `${baseUrl}/api/auth/google`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            credential: credentialResponse.credential,
+          }),
+        }
+      );
 
       const data = await res.json();
 
       if (data.status) {
         localStorage.setItem("token", data.data.token);
-        localStorage.setItem("user", JSON.stringify(data.data.user));
+        localStorage.setItem(
+          "user",
+          JSON.stringify(data.data.user)
+        );
 
         navigate("/proyectos");
       } else {
@@ -128,14 +144,46 @@ const Login = () => {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#D1DDF2] px-6 py-12 font-sans text-dash-text">
-      {/* Manual de usuario — esquina superior derecha */}
+    <main className="relative isolate min-h-screen overflow-hidden bg-[#F4F7FA] px-4 py-12 font-sans text-[#243447] sm:px-6 lg:py-16">
+
+      {/* FONDO ANIMADO TOPOGRAPHY */}
+      {/* Siempre detrás del contenido y sin captar clics */}
+
+      <div
+        className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+        aria-hidden="true"
+      >
+        <Topography
+          className="h-full w-full"
+          color="#155B91"
+          lightMode
+          opacity={3}
+          brightness={1}
+          glow={0.25}
+          lineCount={26}
+          lineWidth={1.1}
+          majorLines
+          elevation={0.85}
+          tilt={38}
+          speed={0.25}
+          direction="forward"
+          scale={1.1}
+          fog={0.35}
+          mouseInteraction={false}
+          intro={false}
+          markers="none"
+          dpr={1}
+        />
+      </div>
+
+      {/* MANUAL DE USUARIO */}
+
       <a
         href="/Manual_de_usuario.pdf"
         target="_blank"
         rel="noopener noreferrer"
         title="Abrir el manual de usuario"
-        className="absolute right-4 top-4 z-20 inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-[#243B53] shadow-sm transition-colors hover:border-[#1C5DAC] hover:text-[#1C5DAC] sm:right-6 sm:top-6"
+        className="absolute right-4 top-4 z-20 inline-flex items-center gap-2 rounded-xl border border-[#DCE5EC] bg-white px-4 py-2.5 text-xs font-bold text-[#155B91] shadow-sm transition-all hover:border-[#9DC5DD] hover:bg-[#F6FAFC] sm:right-7 sm:top-6"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -144,6 +192,7 @@ const Login = () => {
           viewBox="0 0 24 24"
           stroke="currentColor"
           strokeWidth={2}
+          aria-hidden="true"
         >
           <path
             strokeLinecap="round"
@@ -154,76 +203,83 @@ const Login = () => {
         Manual de usuario
       </a>
 
-      {/* Fondo animado en WebGL — capa a pantalla completa, detrás del recuadro de login */}
-      <div className="absolute inset-0 z-0">
-        {/* <GradientWaves
-          horizonColor="#00dfc3"
-          waveColor="#000000"
-          crestColor="#e8e8e8"
-          speed={0.55}
-          amplitude={2.5}
-          waveScale={0.65}
-          swell={30}
-          turbulence={20}
-          tilt={1.15}
-          zoom={1.1}
-          height={5}
-          fogDepth={16}
-          detail="medium"
-          brightness={0.85}
-          opacity={0.9}
-          mouseInteraction
-          parallaxStrength={0.35}
-          grain
-          grainIntensity={0.04}
-        />*/}
+      {/* ENCABEZADO */}
+
+      <div className="relative z-10 mx-auto mb-8 mt-8 max-w-6xl sm:mt-3">
+        <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#287EAB]">
+          Plataforma de cartografía acústica
+        </p>
+
+        <h1 className="text-2xl font-extrabold tracking-tight text-[#153C5B] sm:text-3xl">
+          NoiseMap
+        </h1>
       </div>
 
-      <div className="relative z-10 mx-auto grid max-w-5xl overflow-hidden border border-slate-300 rounded-lg bg-white md:grid-cols-[1.05fr_0.95fr]">
+      {/* TARJETA PRINCIPAL */}
+      {/* Fondo blanco para que Topography no tape el login */}
+
+      <div className="relative z-10 mx-auto grid max-w-6xl overflow-hidden rounded-2xl border border-[#DCE5EC] bg-white shadow-[0_22px_60px_rgba(19,54,83,0.13)] md:grid-cols-[1.02fr_0.98fr]">
+
+        {/* SECCIÓN IZQUIERDA: IMAGEN ORIGINAL */}
 
         <section
-          className="hidden flex-col justify-between bg-cover bg-center p-10 text-white md:flex"
+          className="relative hidden min-h-[600px] flex-col justify-between bg-cover bg-center p-10 text-white md:flex lg:p-12"
           style={{
-            backgroundImage:
-              'linear-gradient(rgba(5, 20, 26, 0.35), rgba(5, 20, 26, 0.35)), url("/portada.png")',
+            backgroundImage: 'url("/portada.png")',
           }}
         >
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em]">
-              NoiseMap
+            <p className="inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#DDEEF9]">
+              Estudios acústicos
             </p>
 
-            <h1 className="mt-20 max-w-sm text-4xl font-semibold leading-tight">
+            <h2 className="mt-20 max-w-md text-4xl font-extrabold leading-tight tracking-tight lg:text-5xl">
               Mapas de ruido para decisiones más claras.
-            </h1>
+            </h2>
           </div>
 
-          <p className="max-w-sm text-sm leading-6 opacity-75">
-            Organiza tus proyectos, delimita zonas de medición y calcula tu propio mapa de ruido.
-          </p>
+          <div>
+            <div className="mb-5 h-1 w-16 rounded-full bg-[#79BAD9]" />
+
+            <p className="max-w-sm text-sm leading-7 text-[#E1EFF7]">
+              Organiza tus proyectos, delimita zonas de
+              medición y calcula tu propio mapa de ruido.
+            </p>
+          </div>
         </section>
 
-        <section className="bg-white p-7 text-[#052B59] sm:p-10">
+        {/* SECCIÓN DERECHA: LOGIN */}
 
-          <p className="mb-2 text-sm font-medium uppercase tracking-[0.18em] text-[#1C5DAC]">
-            {modoRegistro ? "Crear cuenta" : "Bienvenido"}
+        <section className="px-6 py-9 sm:px-10 sm:py-12 lg:px-12">
+
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.17em] text-[#287EAB]">
+            {modoRegistro
+              ? "Registro de usuario"
+              : "Acceso a la plataforma"}
           </p>
 
-          <h2 className="text-3xl font-semibold">
-            {modoRegistro ? "Comienza tu espacio" : "Inicia sesión"}
+          <h2 className="text-3xl font-extrabold tracking-tight text-[#153C5B]">
+            {modoRegistro
+              ? "Crear cuenta"
+              : "Iniciar sesión"}
           </h2>
 
-          <p className="mt-2 text-sm text-slate-600">
-            Usa una cuenta externa o ingresa con tu correo y contraseña.
+          <p className="mt-3 text-sm leading-6 text-[#718397]">
+            Usa una cuenta externa o ingresa con tu correo
+            y contraseña.
           </p>
 
-          <div className="mt-7 space-y-3">
+          {/* GOOGLE Y OUTLOOK */}
 
-            <div className="flex justify-center rounded border border-slate-300 bg-white p-3">
+          <div className="mt-8 space-y-3">
+
+            <div className="flex min-h-[58px] items-center justify-center rounded-xl border border-[#DCE5EC] bg-[#FAFCFE] p-3">
               <GoogleLogin
                 onSuccess={handleSuccess}
                 onError={() =>
-                  setError("No fue posible iniciar sesión con Google.")
+                  setError(
+                    "No fue posible iniciar sesión con Google."
+                  )
                 }
               />
             </div>
@@ -235,81 +291,115 @@ const Login = () => {
                   "La conexión con Outlook se habilitará en una próxima versión."
                 )
               }
-              className="w-full border border-slate-300 px-4 py-3 text-sm font-medium text-slate-800 transition-colors hover:border-[#1C5DAC]"
+              className="w-full rounded-xl border border-[#D6E2EA] bg-white px-4 py-3 text-sm font-semibold text-[#52697C] transition-all hover:border-[#9DC5DD] hover:bg-[#F2F8FC] hover:text-[#155B91]"
             >
               Continuar con Outlook
             </button>
-
           </div>
 
-          <div className="my-7 flex items-center gap-3 text-xs text-slate-500">
-            <span className="h-px flex-1 bg-slate-200" />
+          <div className="my-7 flex items-center gap-3 text-xs font-medium text-[#8A9BA9]">
+            <span className="h-px flex-1 bg-[#E4ECF2]" />
             o con correo
-            <span className="h-px flex-1 bg-slate-200" />
+            <span className="h-px flex-1 bg-[#E4ECF2]" />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* FORMULARIO */}
 
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4"
+          >
             {modoRegistro && (
-              <input
-                value={nombre}
-                onChange={(event) => setNombre(event.target.value)}
-                placeholder="Nombre"
-                className="w-full border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#1C5DAC]"
-              />
+              <label className="block text-xs font-bold text-[#52697C]">
+                Nombre
+
+                <input
+                  value={nombre}
+                  onChange={(event) =>
+                    setNombre(event.target.value)
+                  }
+                  placeholder="Nombre"
+                  className="mt-2 w-full rounded-xl border border-[#D6E2EA] bg-[#FAFCFE] px-4 py-3 text-sm font-normal text-[#243447] outline-none transition-all placeholder:text-[#9BAAB6] focus:border-[#287EAB] focus:bg-white focus:ring-4 focus:ring-[#287EAB]/10"
+                />
+              </label>
             )}
 
-            <input
-              type="email"
-              value={mail}
-              onChange={(event) => setMail(event.target.value)}
-              placeholder="Correo electrónico"
-              className="w-full border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#1C5DAC]"
-            />
+            <label className="block text-xs font-bold text-[#52697C]">
+              Correo electrónico
 
-            <input
-              type="password"
-              value={contrasena}
-              onChange={(event) => setContrasena(event.target.value)}
-              placeholder="Contraseña"
-              className="w-full border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#1C5DAC]"
-            />
+              <input
+                type="email"
+                value={mail}
+                onChange={(event) =>
+                  setMail(event.target.value)
+                }
+                placeholder="correo@ejemplo.cl"
+                className="mt-2 w-full rounded-xl border border-[#D6E2EA] bg-[#FAFCFE] px-4 py-3 text-sm font-normal text-[#243447] outline-none transition-all placeholder:text-[#9BAAB6] focus:border-[#287EAB] focus:bg-white focus:ring-4 focus:ring-[#287EAB]/10"
+              />
+            </label>
 
-            {modoRegistro && (
+            <label className="block text-xs font-bold text-[#52697C]">
+              Contraseña
+
               <input
                 type="password"
-                value={confirmarContrasena}
-                onChange={(event) => setConfirmarContrasena(event.target.value)}
-                placeholder="Confirmar contraseña"
-                className="w-full border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#1C5DAC]"
+                value={contrasena}
+                onChange={(event) =>
+                  setContrasena(event.target.value)
+                }
+                placeholder="Contraseña"
+                className="mt-2 w-full rounded-xl border border-[#D6E2EA] bg-[#FAFCFE] px-4 py-3 text-sm font-normal text-[#243447] outline-none transition-all placeholder:text-[#9BAAB6] focus:border-[#287EAB] focus:bg-white focus:ring-4 focus:ring-[#287EAB]/10"
               />
+            </label>
+
+            {modoRegistro && (
+              <label className="block text-xs font-bold text-[#52697C]">
+                Confirmar contraseña
+
+                <input
+                  type="password"
+                  value={confirmarContrasena}
+                  onChange={(event) =>
+                    setConfirmarContrasena(event.target.value)
+                  }
+                  placeholder="Confirmar contraseña"
+                  className="mt-2 w-full rounded-xl border border-[#D6E2EA] bg-[#FAFCFE] px-4 py-3 text-sm font-normal text-[#243447] outline-none transition-all placeholder:text-[#9BAAB6] focus:border-[#287EAB] focus:bg-white focus:ring-4 focus:ring-[#287EAB]/10"
+                />
+              </label>
             )}
 
             <button
               type="submit"
-              className="w-full bg-[#1C5DAC] px-4 py-3 text-sm font-semibold text-white transition-opacity rounded-lg hover:opacity-90"
+              className="mt-2 w-full rounded-xl bg-[#155B91] px-5 py-3.5 text-sm font-bold text-white shadow-[0_7px_18px_rgba(21,91,145,0.2)] transition-all hover:bg-[#104A75] hover:shadow-lg focus-visible:ring-2 focus-visible:ring-[#155B91] focus-visible:ring-offset-2"
             >
-              {modoRegistro ? "Crear cuenta" : "Iniciar sesión"}
+              {modoRegistro
+                ? "Crear cuenta"
+                : "Iniciar sesión"}
             </button>
-
           </form>
 
+          {/* MENSAJES DE ERROR */}
+
           {error && (
-            <p className="mt-4 text-sm text-red-600">
+            <p
+              role="alert"
+              className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+            >
               {error}
             </p>
           )}
 
+          {/* CAMBIO ENTRE LOGIN Y REGISTRO */}
+
           <button
             type="button"
             onClick={cambiarModo}
-            className="mt-6 text-sm text-[#243B53] hover:underline"
+            className="mt-7 text-sm font-semibold text-[#155B91] underline-offset-4 transition-colors hover:text-[#0B3D62] hover:underline"
           >
             {modoRegistro
               ? "Ya tengo una cuenta"
               : "No tengo una cuenta, crear una"}
           </button>
-
         </section>
       </div>
     </main>
