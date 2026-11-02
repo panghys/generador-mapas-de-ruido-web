@@ -324,7 +324,12 @@ const MapaProyecto = () => {
       setUsuariosConectados(Array.isArray(usuarios) ? usuarios : []);
     };
     const alRecibirActividad = nuevoEvento => {
-      setActividades(prev => [nuevoEvento, ...prev].slice(0, 20));
+      setActividades(prev => {
+        if (nuevoEvento?.id != null && prev.some(item => item.id === nuevoEvento.id)) {
+          return prev;
+        }
+        return [nuevoEvento, ...prev].slice(0, 20);
+      });
     };
     const alRecibirBloqueos = lista => {
       const listaSegura = Array.isArray(lista) ? lista : [];

@@ -110,8 +110,8 @@ const PanelActividad = ({ abierto, onCerrar, usuariosConectados = [], actividade
               <p className="text-xs text-slate-500 italic">Sin actividad registrada en esta sesión.</p>
             ) : (
               <div className="relative border-l border-slate-800 ml-2 space-y-4">
-                {actividades.map((act) => (
-                  <div key={act.id} className="relative pl-5 text-xs">
+                {actividades.map((actividad, index) => (
+                  <div key={actividad.id ? `${actividad.id}-${index}` : index} className="relative pl-5 text-xs">
                     <div className="absolute -left-1.5 top-0.5 w-3 h-3 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-[8px]">
                       •
                     </div>
@@ -119,12 +119,12 @@ const PanelActividad = ({ abierto, onCerrar, usuariosConectados = [], actividade
                     <div className="bg-slate-800/20 p-2 rounded border border-slate-800/60">
                       <div className="flex items-center justify-between text-[10px] text-slate-500 mb-0.5">
                         <span className="flex items-center gap-1">
-                          {getIconoActividad(act.tipo)}
-                          <strong className="text-slate-300 font-semibold">{act.usuario}</strong>
+                          {getIconoActividad(actividad.tipo)}
+                          <strong className="text-slate-300 font-semibold">{actividad.usuario}</strong>
                         </span>
-                        <span>{formatearHora(act.timestamp)}</span>
+                        <span>{formatearHora(actividad.timestamp)}</span>
                       </div>
-                      <p className="text-slate-300 text-[11px] leading-relaxed">{act.descripcion}</p>
+                      <p className="text-slate-300 text-[11px] leading-relaxed">{actividad.descripcion}</p>
                     </div>
                   </div>
                 ))}
