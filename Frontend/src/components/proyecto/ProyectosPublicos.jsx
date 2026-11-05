@@ -1,28 +1,15 @@
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import clientAxios from "../config/clienteAxios";
 import CircularCarousel from "../CircularCarousel";
 
-import { calcularRuidoLocal } from "./ruidoLocal";
-import { obtenerNivelEmisionCalle } from "./ruidoPropagacion";
-import {
-  generarMapaRuido,
-  crearUrlVistaPrevia,
-} from "./exportarMapaRuido";
+import MapaRuidoPreview from "./MapaRuidoPreview";
 
 // =====================================================
 // FUNCIONES AUXILIARES
 // =====================================================
-
-const leer = (valor) => {
-  try {
-    return typeof valor === "string" ? JSON.parse(valor) : valor;
-  } catch {
-    return null;
-  }
-};
 
 const fecha = (valor) => {
   if (!valor) return "Sin fecha";
@@ -33,57 +20,6 @@ const fecha = (valor) => {
     ? "Sin fecha"
     : objeto.toLocaleDateString("es-CL");
 };
-
-// Generar la imagen real del mapa acústico.
-async function crearMiniatura(proyecto) {
-  const zona = (
-    leer(proyecto.zona)?.coordinates?.[0] || []
-  ).map(([lng, lat]) => [lat, lng]);
-
-  const calles = (proyecto.calles || []).map((calle) => {
-    const nivel = calcularRuidoLocal(
-      {
-        pequeños: calle.trafico_vehiculos_pequenos,
-        medianos: calle.trafico_vehiculos_medianos,
-        grandes: calle.trafico_vehiculos_grandes,
-      },
-      calle.velocidadPromedio ?? 50,
-      calle.tipoSuperficie || "asfalto_no_ranurado",
-      calle.periodoConteo || "15_minutos"
-    );
-
-    return {
-      ...calle,
-      nivelRuidoCalculado: nivel,
-      latlngs: (
-        leer(calle.trazo_calle)?.coordinates || []
-      ).map(([lng, lat]) => [lat, lng]),
-    };
-  });
-
-  const fuentes = calles
-    .map((calle) => ({
-      latlngs: calle.latlngs,
-      nivel: obtenerNivelEmisionCalle(calle),
-    }))
-    .filter(
-      (calle) =>
-        calle.latlngs.length >= 2 &&
-        Number.isFinite(calle.nivel)
-    );
-
-  if (zona.length < 3 || !fuentes.length) {
-    return null;
-  }
-
-  const resultado = await generarMapaRuido({
-    nombre: proyecto.nombre,
-    calles: fuentes,
-    zona,
-  });
-
-  return crearUrlVistaPrevia(resultado);
-}
 
 // Convertir un lugar escrito en coordenadas.
 async function geocodificar(texto, signal) {
@@ -117,22 +53,6 @@ async function geocodificar(texto, signal) {
     : null;
 }
 
-// Esperar a que el navegador cargue una imagen.
-function esperarImagen(url) {
-  return new Promise((resolve) => {
-    const imagen = new Image();
-
-    imagen.onload = () => resolve(true);
-    imagen.onerror = () => resolve(false);
-
-    imagen.src = url;
-
-    if (imagen.complete) {
-      resolve(imagen.naturalWidth > 0);
-    }
-  });
-}
-
 // =====================================================
 // PANTALLA DE CARGA
 // =====================================================
@@ -143,7 +63,7 @@ function PantallaCarga() {
       <div
         className="flex items-center justify-center gap-3"
         role="status"
-        aria-label="Cargando mapas de la comunidad"
+        aria-label="Cargando proyectos públicos"
       >
         {[0, 1, 2].map((i) => (
           <span
@@ -163,11 +83,11 @@ function PantallaCarga() {
       </div>
 
       <h2 className="mt-8 text-lg font-semibold text-[#153C5B]">
-        Preparando mapas de la comunidad
+        Cargando comunidad
       </h2>
 
       <p className="mt-2 text-center text-sm text-[#718397]">
-        Estamos cargando los proyectos y sus mapas acústicos...
+        Estamos cargando los proyectos públicos...
       </p>
 
       <style>
@@ -197,7 +117,6 @@ export default function ProyectosPublicos() {
 
   const [todos, setTodos] = useState([]);
   const [resultados, setResultados] = useState([]);
-  const [miniaturas, setMiniaturas] = useState({});
 
   const [texto, setTexto] = useState("");
   const [radio, setRadio] = useState(30);
@@ -205,14 +124,9 @@ export default function ProyectosPublicos() {
 
   const [cargando, setCargando] = useState(true);
   const [buscando, setBuscando] = useState(false);
-  const [generando, setGenerando] = useState(false);
-  const [preparandoPagina, setPreparandoPagina] =
-    useState(true);
 
   const [error, setError] = useState("");
   const [indiceActivo, setIndiceActivo] = useState(0);
-
-  const urlsRef = useRef({});
 
   // =====================================================
   // 1. CARGAR PROYECTOS PÚBLICOS
@@ -388,138 +302,19 @@ export default function ProyectosPublicos() {
   }, [texto, radio, todos, cargando]);
 
   // =====================================================
-  // 3. GENERAR TODAS LAS MINIATURAS
-  // =====================================================
-
-  useEffect(() => {
-    if (cargando) return;
-
-    let cancelado = false;
-    const controlador = new AbortController();
-
-    async function cargarMiniaturas() {
-      setGenerando(true);
-      setPreparandoPagina(true);
-
-      for (const mapa of todos) {
-        if (cancelado) break;
-
-        const urlExistente = urlsRef.current[mapa.id];
-
-        if (urlExistente) {
-          await esperarImagen(urlExistente);
-          continue;
-        }
-
-        try {
-          const respuesta = await clientAxios.get(
-            `/proyectos/publicos/${mapa.id}`,
-            {
-              signal: controlador.signal,
-            }
-          );
-
-          if (cancelado) break;
-
-          const url = await crearMiniatura(
-            respuesta.data.data
-          );
-
-          if (cancelado) {
-            if (url?.startsWith("blob:")) {
-              URL.revokeObjectURL(url);
-            }
-            break;
-          }
-
-          if (!url) {
-            console.warn(
-              `El proyecto ${mapa.id} no tiene vista previa.`
-            );
-            continue;
-          }
-
-          const imagenCargada = await esperarImagen(url);
-
-          if (cancelado) {
-            if (url.startsWith("blob:")) {
-              URL.revokeObjectURL(url);
-            }
-            break;
-          }
-
-          if (!imagenCargada) {
-            console.warn(
-              `No se pudo cargar la imagen del proyecto ${mapa.id}.`
-            );
-
-            if (url.startsWith("blob:")) {
-              URL.revokeObjectURL(url);
-            }
-
-            continue;
-          }
-
-          urlsRef.current[mapa.id] = url;
-
-          setMiniaturas((anteriores) => ({
-            ...anteriores,
-            [mapa.id]: url,
-          }));
-        } catch (err) {
-          if (!cancelado) {
-            console.error(
-              "Error al preparar el mapa:",
-              mapa.id,
-              err
-            );
-          }
-        }
-      }
-
-      if (!cancelado) {
-        setGenerando(false);
-        setPreparandoPagina(false);
-      }
-    }
-
-    cargarMiniaturas();
-
-    return () => {
-      cancelado = true;
-      controlador.abort();
-    };
-  }, [todos, cargando]);
-
-  // Liberar imágenes temporales al salir.
-  useEffect(() => {
-    return () => {
-      Object.values(urlsRef.current).forEach((url) => {
-        if (url?.startsWith("blob:")) {
-          URL.revokeObjectURL(url);
-        }
-      });
-    };
-  }, []);
-
-  // =====================================================
-  // 4. DATOS DEL CARRUSEL
+  // 3. DATOS DEL CARRUSEL
   // =====================================================
 
   const destacados = useMemo(() => {
-    return todos
-      .filter((mapa) => miniaturas[mapa.id])
-      .map((mapa) => ({
-        id: mapa.id,
-        src: miniaturas[mapa.id],
-        alt: `Mapa acústico de ${mapa.nombre}`,
-        title: mapa.nombre,
-        subtitle:
-          [mapa.comuna, mapa.region]
-            .filter(Boolean)
-            .join(", ") || "Estudio acústico",
-      }));
-  }, [todos, miniaturas]);
+    return todos.slice(0, 8).map((mapa) => ({
+      id: mapa.id,
+      title: mapa.nombre,
+      subtitle:
+        [mapa.comuna, mapa.region]
+          .filter(Boolean)
+          .join(", ") || "Estudio acústico",
+    }));
+  }, [todos]);
 
   const abrirProyecto = (id) => {
     if (id !== undefined && id !== null) {
@@ -528,20 +323,21 @@ export default function ProyectosPublicos() {
   };
 
   // =====================================================
-  // 5. PANTALLA DE CARGA INICIAL
+  // 4. PANTALLA DE CARGA INICIAL
   // =====================================================
 
-  if (cargando || preparandoPagina) {
+  if (cargando) {
     return <PantallaCarga />;
   }
 
   // =====================================================
-  // 6. INTERFAZ DE COMUNIDAD
+  // 5. INTERFAZ DE COMUNIDAD
   // =====================================================
 
   return (
     <main className="min-h-screen bg-[#F4F7FA] text-[#243447]">
 
+      <div className="h-1.5 w-full bg-[#155B91]" />
 
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-8">
 
@@ -597,6 +393,12 @@ export default function ProyectosPublicos() {
 
                 <CircularCarousel
                   items={destacados}
+                  renderItem={(item) => (
+                    <MapaRuidoPreview
+                      proyectoId={item.id}
+                      className="h-full w-full"
+                    />
+                  )}
                   preset="orbit"
                   intro="none"
                   cardWidth={250}
@@ -770,11 +572,6 @@ export default function ProyectosPublicos() {
                 }`}
           </p>
 
-          {generando && (
-            <span className="inline-flex items-center gap-2 text-xs font-medium text-[#287EAB]">
-              Preparando vistas previas...
-            </span>
-          )}
         </div>
 
         {/* SIN RESULTADOS */}
@@ -809,22 +606,13 @@ export default function ProyectosPublicos() {
               className="group overflow-hidden rounded-2xl border border-[#DCE5EC] bg-white shadow-[0_5px_20px_rgba(19,54,83,0.05)] transition-all duration-300 hover:-translate-y-1 hover:border-[#B7D1E2] hover:shadow-[0_14px_32px_rgba(19,54,83,0.10)]"
             >
 
-              {/* IMAGEN COMPLETA DEL MAPA */}
+              {/* PREVISUALIZACIÓN DEL MAPA DE CALOR */}
 
-              <div className="relative flex h-60 items-center justify-center overflow-hidden border-b border-[#E7EDF2] bg-[#EDF3F7] p-3">
-
-                {miniaturas[mapa.id] ? (
-                  <img
-                    src={miniaturas[mapa.id]}
-                    alt={`Mapa acústico completo de ${mapa.nombre}`}
-                    className="h-full w-full object-contain"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="text-center text-sm text-[#8294A4]">
-                    Vista previa no disponible
-                  </div>
-                )}
+              <div className="relative h-60 overflow-hidden border-b border-[#E7EDF2] bg-[#EDF3F7]">
+                <MapaRuidoPreview
+                  proyectoId={mapa.id}
+                  className="h-full w-full"
+                />
 
                 <span className="absolute left-4 top-4 rounded-md border border-[#DCE5EC] bg-white/95 px-3 py-1.5 text-[11px] font-bold text-[#155B91] shadow-sm">
                   MAPA PÚBLICO

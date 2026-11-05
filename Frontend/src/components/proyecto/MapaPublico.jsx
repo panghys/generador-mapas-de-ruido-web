@@ -62,13 +62,13 @@ export default function MapaPublico() {
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap contributors", crossOrigin: true }).addTo(mapa);
     const zona = poligonoALatlng(proyecto.zona);
     if (zona.length >= 3) {
-      const capaZona = L.polygon(zona, { color: "#2dd4bf", weight: 2, fillOpacity: 0.08 }).addTo(mapa);
+      const capaZona = L.polygon(zona, { color: "#287EAB", weight: 2, fillColor: "#287EAB", fillOpacity: 0.08 }).addTo(mapa);
       mapa.fitBounds(capaZona.getBounds(), { padding: [35, 35] });
     }
     const lineas = calles.filter((c) => c.latlngs.length >= 2);
     lineas.forEach((calle) => {
       const color = calle.nivelRuidoCalculado > 0 ? obtenerColorRuido(calle.nivelRuidoCalculado).color : calle.color_asignado || "#eab308";
-      L.polyline(calle.latlngs, { color: "#111827", weight: 6, interactive: false }).addTo(mapa);
+      L.polyline(calle.latlngs, { color: "#153C5B", weight: 6, opacity: 0.95, interactive: false }).addTo(mapa);
       L.polyline(calle.latlngs, { color, weight: 3, interactive: true })
         .bindPopup(`<strong>${escapar(calle.nombre_calle || "Calle sin nombre")}</strong><br/>${Number(calle.nivelRuidoCalculado || 0).toFixed(1)} dB(A)`)
         .addTo(mapa);
@@ -119,31 +119,32 @@ export default function MapaPublico() {
     setVista(null);
   }
 
-  if (cargando) return <main className="min-h-screen bg-[#0F1417] p-12 text-white">Cargando mapa público...</main>;
-  if (error || !proyecto) return <main className="min-h-screen bg-[#0F1417] p-12 text-white"><p>{error || "Mapa no disponible."}</p><Link to="/comunidad" className="mt-4 inline-block text-teal-300 underline">Volver a la comunidad</Link></main>;
+  if (cargando) return <main className="min-h-screen bg-[#F4F7FA] p-12 text-[#153C5B]">Cargando mapa público...</main>;
+  if (error || !proyecto) return <main className="min-h-screen bg-[#F4F7FA] p-12 text-[#243447]"><p>{error || "Mapa no disponible."}</p><Link to="/comunidad" className="mt-4 inline-block text-[#155B91] underline">Volver a la comunidad</Link></main>;
   return (
-    <main className="min-h-screen bg-[#0F1417] px-5 py-10 text-white sm:px-10">
-      <div className="mx-auto max-w-7xl">
-        <Link to="/comunidad" className="text-sm text-teal-300 hover:underline">← Volver a la comunidad</Link>
+    <main className="min-h-screen bg-[#F4F7FA] text-[#243447]">
+      <div className="h-1.5 w-full bg-[#155B91]" />
+      <div className="mx-auto max-w-7xl px-5 py-10 sm:px-10">
+        <Link to="/comunidad" className="text-sm font-medium text-[#155B91] hover:underline">← Volver a la comunidad</Link>
         <div className="mb-7 mt-7 flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
-            <span className="rounded-full border border-teal-400/30 bg-teal-400/10 px-3 py-1 text-xs font-semibold text-teal-300">Solo lectura · Proyecto listo</span>
-            <h1 className="mt-4 text-3xl font-bold">{proyecto.nombre}</h1>
-            <p className="mt-2 text-sm text-slate-400">Por {proyecto.usuario?.name || "Comunidad"} · {[proyecto.comuna, proyecto.region].filter(Boolean).join(", ") || "Zona delimitada"}</p>
+            <span className="rounded-full border border-[#CFE2EE] bg-[#EAF4FA] px-3 py-1 text-xs font-semibold text-[#155B91]">Solo lectura · Proyecto listo</span>
+            <h1 className="mt-4 text-3xl font-bold text-[#153C5B]">{proyecto.nombre}</h1>
+            <p className="mt-2 text-sm text-[#617487]">Por {proyecto.usuario?.name || "Comunidad"} · {[proyecto.comuna, proyecto.region].filter(Boolean).join(", ") || "Zona delimitada"}</p>
           </div>
-          <button type="button" disabled={!proyecto.zona || !calles.length || exportando} onClick={exportar} className="rounded-xl bg-teal-400 px-5 py-3 text-sm font-bold text-[#0F1417] hover:bg-teal-300 disabled:opacity-40">{exportando ? "Generando reporte..." : "Ver / descargar reporte del mapa"}</button>
+          <button type="button" disabled={!proyecto.zona || !calles.length || exportando} onClick={exportar} className="rounded-xl bg-[#155B91] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#0F456E] disabled:opacity-40">{exportando ? "Generando reporte..." : "Ver / descargar reporte del mapa"}</button>
         </div>
-        {proyecto.descripcion && <p className="mb-6 max-w-3xl leading-7 text-slate-300">{proyecto.descripcion}</p>}
-        {errorExportar && <p role="alert" className="mb-4 text-sm text-red-300">{errorExportar}</p>}
+        {proyecto.descripcion && <p className="mb-6 max-w-3xl leading-7 text-[#617487]">{proyecto.descripcion}</p>}
+        {errorExportar && <p role="alert" className="mb-4 text-sm text-red-700">{errorExportar}</p>}
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_270px]">
-          <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#171D21]">
-            <div ref={mapaContenedor} className="h-[530px] w-full sm:h-[650px]" aria-label="Mapa acústico público, solo lectura" />
+          <section className="overflow-hidden rounded-2xl border border-[#DCE5EC] bg-white shadow-[0_8px_28px_rgba(19,54,83,0.06)]">
+            <div ref={mapaContenedor} className="h-[530px] w-full bg-[#EDF3F7] sm:h-[650px]" aria-label="Mapa acústico público, solo lectura" />
           </section>
-          <aside className="h-fit space-y-5 rounded-2xl border border-white/10 bg-[#171D21] p-5">
-            <div><h2 className="text-base font-semibold">Datos del estudio</h2><p className="mt-2 text-sm text-slate-400">{calles.length} calles registradas</p><p className="mt-1 text-sm text-slate-400">Sin permisos de edición</p></div>
-            <button type="button" onClick={() => setMostrarRuido((v) => !v)} className="w-full rounded-lg border border-teal-400/50 p-3 text-sm font-semibold text-teal-300">{mostrarRuido ? "Ocultar" : "Mostrar"} superficie acústica</button>
-            <div><h3 className="mb-3 text-sm font-semibold">Escala de niveles acústicos</h3>{NIVELES_RUIDO.map((nivel) => <div key={nivel.color} className="mb-2 flex items-center gap-2 text-xs text-slate-300"><span className="h-3 w-7 rounded" style={{ background: nivel.color }} />{nivel.rango} dB(A)</div>)}</div>
-            <p className="text-xs leading-5 text-slate-500">Modelo RLS-90 / DIN 18005-2. Las calles se muestran en modo consulta; la visualización no permite crear, editar ni eliminar geometrías.</p>
+          <aside className="h-fit space-y-5 rounded-2xl border border-[#DCE5EC] bg-white p-5 shadow-[0_4px_18px_rgba(19,54,83,0.04)]">
+            <div><h2 className="text-base font-semibold text-[#153C5B]">Datos del estudio</h2><p className="mt-2 text-sm text-[#718397]">{calles.length} calles registradas</p><p className="mt-1 text-sm text-[#718397]">Sin permisos de edición</p></div>
+            <button type="button" onClick={() => setMostrarRuido((v) => !v)} className="w-full rounded-lg border border-[#CFE2EE] bg-[#EAF4FA] p-3 text-sm font-semibold text-[#155B91] transition-colors hover:bg-[#DDECF5]">{mostrarRuido ? "Ocultar" : "Mostrar"} superficie acústica</button>
+            <div><h3 className="mb-3 text-sm font-semibold text-[#153C5B]">Escala de niveles acústicos</h3>{NIVELES_RUIDO.map((nivel) => <div key={nivel.color} className="mb-2 flex items-center gap-2 text-xs text-[#52697C]"><span className="h-3 w-7 rounded" style={{ background: nivel.color }} />{nivel.rango} dB(A)</div>)}</div>
+            <p className="text-xs leading-5 text-[#8294A4]">Modelo RLS-90 / DIN 18005-2. Las calles se muestran en modo consulta; la visualización no permite crear, editar ni eliminar geometrías.</p>
           </aside>
         </div>
       </div>

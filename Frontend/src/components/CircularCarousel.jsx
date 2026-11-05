@@ -216,6 +216,8 @@ const CircularCarousel = ({
   innerShade = 0.6,
   cornerRadius = 12,
   captions = false,
+  // eslint-disable-next-line react/prop-types
+  renderItem,
   onChange,
   onItemClick,
   className = '',
@@ -345,7 +347,7 @@ const CircularCarousel = ({
   incomingRef.current = incoming;
   const listRef = useRef(list);
   listRef.current = list;
-  const sourcesKey = incoming.map(item => item.src).join('|');
+  const sourcesKey = incoming.map(item => `${item.src || ''}:${item.id || ''}:${item.title || ''}`).join('|');
 
   useEffect(() => {
     let cancelled = false;
@@ -356,7 +358,7 @@ const CircularCarousel = ({
       setLeaving(null);
       setList(next);
     }
-    const sources = next.slice(0, 16).map(item => item.src);
+    const sources = next.slice(0, 16).map(item => item.src).filter(Boolean);
     const load = src =>
       new Promise(resolve => {
         const image = new Image();
@@ -877,24 +879,32 @@ const CircularCarousel = ({
           className="absolute left-0 top-0 w-full overflow-hidden"
           style={{ height: axis === 'x' ? size : cardH, borderRadius: frameRadius }}
         >
-          <img
-            className="pointer-events-none absolute block max-w-none select-none object-cover [-webkit-user-drag:none]"
-            src={item.src}
-            alt=""
-            draggable={false}
-            decoding="async"
-            style={photoStyle}
-          />
-          {gone && (
-            <img
-              key={`leaving-${leaving.id}`}
-              className="pointer-events-none absolute block max-w-none select-none object-cover [-webkit-user-drag:none] animate-[circular-carousel-leave_700ms_cubic-bezier(0.33,1,0.68,1)_both]"
-              src={gone.src}
-              alt=""
-              draggable={false}
-              decoding="async"
-              style={{ ...photoStyle, animationDelay: `${Math.round(leaving.delays[index])}ms` }}
-            />
+          {renderItem ? (
+            <div className="absolute inset-0 h-full w-full">
+              {renderItem(item, index)}
+            </div>
+          ) : (
+            <>
+              <img
+                className="pointer-events-none absolute block max-w-none select-none object-cover [-webkit-user-drag:none]"
+                src={item.src}
+                alt=""
+                draggable={false}
+                decoding="async"
+                style={photoStyle}
+              />
+              {gone?.src && (
+                <img
+                  key={`leaving-${leaving.id}`}
+                  className="pointer-events-none absolute block max-w-none select-none object-cover [-webkit-user-drag:none] animate-[circular-carousel-leave_700ms_cubic-bezier(0.33,1,0.36,1)_both]"
+                  src={gone.src}
+                  alt=""
+                  draggable={false}
+                  decoding="async"
+                  style={{ ...photoStyle, animationDelay: `${Math.round(leaving.delays[index])}ms` }}
+                />
+              )}
+            </>
           )}
           {back && <div className="pointer-events-none absolute inset-0 bg-black opacity-[var(--cc-inner)]" />}
           <div className="pointer-events-none absolute inset-0 bg-[var(--cc-fade)] opacity-[var(--cc-depth,0)]" />
