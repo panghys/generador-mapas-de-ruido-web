@@ -11,15 +11,28 @@ export async function ensureStreetNoiseColumns() {
       return typeof tableName === "string" && tableName.toLowerCase() === nombre;
     });
 
-  if (existeTabla(tables, "projects")) {
-    const columnasProyecto = await queryInterface.describeTable("projects");
-    if (!columnasProyecto.modeloCalculo) {
-      await queryInterface.addColumn("projects", "modeloCalculo", {
-        type: DataTypes.STRING,
-        allowNull: false,
-        defaultValue: "RLS90",
-      });
+  const ensureColumn = async (tableName, columnName, definition) => {
+    const columns = await queryInterface.describeTable(tableName);
+    const columnExists = Object.keys(columns).some(
+      (column) => column.toLowerCase() === columnName.toLowerCase()
+    );
+
+    if (columnExists) return;
+
+    try {
+      await queryInterface.addColumn(tableName, columnName, definition);
+    } catch (error) {
+      if (error.original?.errno === 1060 || error.parent?.errno === 1060) return;
+      throw error;
     }
+  };
+
+  if (existeTabla(tables, "projects")) {
+    await ensureColumn("projects", "modeloCalculo", {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "RLS90",
+    });
   }
 
   const streetsTableExists = tables.some((table) => {
@@ -30,7 +43,6 @@ export async function ensureStreetNoiseColumns() {
 
   if (!streetsTableExists) return;
 
-  const columns = await queryInterface.describeTable("streets");
   const noiseColumns = {
     nivelRuidoCalculado: { type: DataTypes.FLOAT, allowNull: true },
     velocidadPromedio: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 50 },
@@ -48,8 +60,6 @@ export async function ensureStreetNoiseColumns() {
   };
 
   for (const [name, definition] of Object.entries(noiseColumns)) {
-    if (!columns[name]) {
-      await queryInterface.addColumn("streets", name, definition);
-    }
+    await ensureColumn("streets", name, definition);
   }
 }
