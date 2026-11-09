@@ -66,14 +66,12 @@ export default function Navbar() {
             title="NoiseMap"
           >
 
-            {/* ÍCONO */}
-           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#155B91] to-[#0D3559] p-2 shadow-[0_5px_12px_rgba(21,91,145,0.20)] transition-transform duration-200 group-hover:-translate-y-0.5">
-              <img
-                src="/icono.png"
-                alt="Icono Mapas de Ruido"
-                className="h-6 w-6 object-contain"
-              />
-            </span>
+          {/* ÍCONO */}
+            <img
+              src="/icono.png"
+              alt="Logo Generador Mapas de Ruido"
+              className="h-11 w-11 shrink-0 object-contain transition-transform duration-200 group-hover:-translate-y-0.5"
+            />
 
             {/* NOMBRE */}
             <span className="flex flex-col leading-tight">
