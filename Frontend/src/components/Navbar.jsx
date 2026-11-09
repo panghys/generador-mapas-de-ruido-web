@@ -67,27 +67,12 @@ export default function Navbar() {
           >
 
             {/* ÍCONO */}
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#155B91] to-[#0D3559] text-white shadow-[0_5px_12px_rgba(21,91,145,0.20)] transition-transform duration-200 group-hover:-translate-y-0.5">
-
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="25"
-                height="25"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M3 10v4" />
-                <path d="M7 7v10" />
-                <path d="M11 4v16" />
-                <path d="M15 8v8" />
-                <path d="M19 6v12" />
-                <path d="M22 10v4" />
-              </svg>
+           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#155B91] to-[#0D3559] p-2 shadow-[0_5px_12px_rgba(21,91,145,0.20)] transition-transform duration-200 group-hover:-translate-y-0.5">
+              <img
+                src="/icono.png"
+                alt="Icono Mapas de Ruido"
+                className="h-6 w-6 object-contain"
+              />
             </span>
 
             {/* NOMBRE */}
