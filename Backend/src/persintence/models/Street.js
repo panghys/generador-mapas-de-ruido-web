@@ -35,6 +35,10 @@ export const Street = sequelize.define(
       type: DataTypes.INTEGER,
       defaultValue: 0,
     },
+    trafico_motocicletas: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
     tipo_calculo: {
       type: DataTypes.STRING,
       allowNull: true,

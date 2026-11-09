@@ -10,6 +10,20 @@ import MapaRuidoPreview from "./MapaRuidoPreview";
 // =====================================================
 // FUNCIONES AUXILIARES
 // =====================================================
+import { calcularNivelEmision25 } from "./modeloRuido";
+import { obtenerNivelEmisionCalle, obtenerBandasCalle } from "./ruidoPropagacion";
+import {
+  generarMapaRuido,
+  crearUrlVistaPrevia,
+} from "./exportarMapaRuido";
+
+const leer = (valor) => {
+  try {
+    return typeof valor === "string" ? JSON.parse(valor) : valor;
+  } catch {
+    return null;
+  }
+};
 
 const fecha = (valor) => {
   if (!valor) return "Sin fecha";
@@ -21,7 +35,51 @@ const fecha = (valor) => {
     : objeto.toLocaleDateString("es-CL");
 };
 
-// Convertir un lugar escrito en coordenadas.
+
+// Genera una imagen del mapa acústico real.
+async function crearMiniatura(proyecto) {
+  const zona = (
+    leer(proyecto.zona)?.coordinates?.[0] || []
+  ).map(([lng, lat]) => [lat, lng]);
+
+  const calles = (proyecto.calles || []).map((calle) => {
+    const nivel = calcularNivelEmision25(calle, proyecto.modeloCalculo);
+
+    return {
+      ...calle,
+      nivelRuidoCalculado: nivel,
+      latlngs: (
+        leer(calle.trazo_calle)?.coordinates || []
+      ).map(([lng, lat]) => [lat, lng]),
+    };
+  });
+
+  const fuentes = calles
+    .map((calle) => ({
+      latlngs: calle.latlngs,
+      nivel: obtenerNivelEmisionCalle(calle, proyecto.modeloCalculo),
+      bandasA: obtenerBandasCalle(calle, proyecto.modeloCalculo),
+    }))
+    .filter(
+      (calle) =>
+        calle.latlngs.length >= 2 &&
+        Number.isFinite(calle.nivel)
+    );
+
+  if (zona.length < 3 || !fuentes.length) {
+    return null;
+  }
+
+  const resultado = await generarMapaRuido({
+    nombre: proyecto.nombre,
+    calles: fuentes,
+    zona,
+  });
+
+  return crearUrlVistaPrevia(resultado);
+}
+
+// Permite buscar proyectos por ubicación geográfica.
 async function geocodificar(texto, signal) {
   const url = new URL(
     "https://nominatim.openstreetmap.org/search"

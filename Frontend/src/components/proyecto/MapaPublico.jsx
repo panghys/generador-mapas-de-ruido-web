@@ -5,8 +5,8 @@ import "leaflet/dist/leaflet.css";
 import clientAxios from "../config/clienteAxios";
 import CapaRuidoRaster from "./CapaRuidoRaster";
 import { NIVELES_RUIDO, obtenerColorRuido } from "./nivelesRuido";
-import { calcularRuidoLocal } from "./ruidoLocal";
-import { obtenerNivelEmisionCalle } from "./ruidoPropagacion";
+import { calcularNivelEmision25 } from "./modeloRuido";
+import { obtenerNivelEmisionCalle, obtenerBandasCalle } from "./ruidoPropagacion";
 import { crearUrlVistaPrevia, descargarMapaRuido, generarMapaRuido } from "./exportarMapaRuido";
 import ExportarMapaModal from "./ExportarMapaModal";
 
@@ -14,12 +14,8 @@ const comoObjeto = (geojson) => { try { return typeof geojson === "string" ? JSO
 const poligonoALatlng = (zona) => (comoObjeto(zona)?.coordinates?.[0] || []).map(([lng, lat]) => [lat, lng]);
 const lineaALatlng = (calle) => (comoObjeto(calle.trazo_calle)?.coordinates || []).map(([lng, lat]) => [lat, lng]);
 
-function prepararCalle(calle) {
-  const nivel = calcularRuidoLocal({
-    pequeños: calle.trafico_vehiculos_pequenos,
-    medianos: calle.trafico_vehiculos_medianos,
-    grandes: calle.trafico_vehiculos_grandes,
-  }, calle.velocidadPromedio ?? 50, calle.tipoSuperficie || "asfalto_no_ranurado", calle.periodoConteo || "15_minutos");
+function prepararCalle(calle, modelo) {
+  const nivel = calcularNivelEmision25(calle, modelo);
   return { ...calle, nivelRuidoCalculado: nivel, latlngs: lineaALatlng(calle) };
 }
 
@@ -46,7 +42,7 @@ export default function MapaPublico() {
     setCalles([]);
     setError("");
     clientAxios.get(`/proyectos/publicos/${id}`, { signal: ctrl.signal })
-      .then(({ data }) => { setProyecto(data.data); setCalles((data.data.calles || []).map(prepararCalle)); })
+      .then(({ data }) => { setProyecto(data.data); setCalles((data.data.calles || []).map((calle) => prepararCalle(calle, data.data.modeloCalculo))); })
       .catch((err) => { if (err.name !== "CanceledError") setError("Este mapa no está disponible públicamente o fue retirado de la comunidad."); })
       .finally(() => { if (!ctrl.signal.aborted) setCargando(false); });
     return () => ctrl.abort();
@@ -79,7 +75,7 @@ export default function MapaPublico() {
   useEffect(() => {
     const mapa = mapaRef.current;
     if (!mapa || !mostrarRuido || !proyecto?.zona || !calles.length) return;
-    const fuentes = calles.map((calle) => ({ latlngs: calle.latlngs, nivel: obtenerNivelEmisionCalle(calle) }))
+    const fuentes = calles.map((calle) => ({ latlngs: calle.latlngs, nivel: obtenerNivelEmisionCalle(calle, proyecto.modeloCalculo), bandasA: obtenerBandasCalle(calle, proyecto.modeloCalculo) }))
       .filter((c) => c.latlngs.length >= 2 && Number.isFinite(c.nivel));
     if (!fuentes.length) return;
     const capa = new CapaRuidoRaster({ calles: fuentes, zona: poligonoALatlng(proyecto.zona) }, { pane: "superficieRuido", opacidad: 0.6 }).addTo(mapa);
@@ -94,7 +90,7 @@ export default function MapaPublico() {
     setErrorExportar("");
     try {
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
-      const fuentes = calles.map((calle) => ({ latlngs: calle.latlngs, nivel: obtenerNivelEmisionCalle(calle) }))
+      const fuentes = calles.map((calle) => ({ latlngs: calle.latlngs, nivel: obtenerNivelEmisionCalle(calle, proyecto.modeloCalculo), bandasA: obtenerBandasCalle(calle, proyecto.modeloCalculo) }))
         .filter((c) => c.latlngs.length >= 2 && Number.isFinite(c.nivel));
       const resultado = await generarMapaRuido({ nombre: proyecto.nombre, calles: fuentes, zona: poligonoALatlng(proyecto.zona) });
       const url = await crearUrlVistaPrevia(resultado);

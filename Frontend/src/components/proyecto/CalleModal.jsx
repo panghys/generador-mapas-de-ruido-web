@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { calcularRuidoLocal } from "./ruidoLocal";
+import { calcularNivelEmision25, MODELO_CNOSSOS } from "./modeloRuido";
 
 const tiposCalle = ["Calle", "Avenida", "Pasaje", "Calle principal"];
 
@@ -18,6 +18,7 @@ const colores = [
 const CalleModal = ({
   abierto,
   datosIniciales,
+  modeloCalculo,
   onGuardar,
   onEliminar,
   onCancelar,
@@ -29,22 +30,30 @@ const CalleModal = ({
   const [grandes, setGrandes] = useState(0);
   const [medianos, setMedianos] = useState(0);
   const [pequenos, setPequenos] = useState(0);
+  const [motos, setMotos] = useState(0);
   const [velocidad, setVelocidad] = useState(50);
   const [tipoSuperficie, setTipoSuperficie] = useState('asfalto_no_ranurado');
   const [periodoConteo, setPeriodoConteo] = useState("15_minutos");
   const [nivelRuidoEstimado, setNivelRuidoEstimado] = useState(null);
 
   const esEdicion = Boolean(datosIniciales?.id);
+  const esCNOSSOS = modeloCalculo === MODELO_CNOSSOS;
 
   useEffect(() => {
-    const nivel = calcularRuidoLocal(
-      { pequeños: pequenos, medianos, grandes },
-      velocidad,
-      tipoSuperficie,
-      periodoConteo
+    const nivel = calcularNivelEmision25(
+      {
+        trafico_vehiculos_pequenos: pequenos,
+        trafico_vehiculos_medianos: medianos,
+        trafico_vehiculos_grandes: grandes,
+        trafico_motocicletas: motos,
+        velocidadPromedio: velocidad,
+        tipoSuperficie,
+        periodoConteo,
+      },
+      modeloCalculo
     );
     setNivelRuidoEstimado(nivel);
-  }, [pequenos, medianos, grandes, velocidad, tipoSuperficie, periodoConteo]);
+  }, [pequenos, medianos, grandes, motos, velocidad, tipoSuperficie, periodoConteo, modeloCalculo]);
 
   useEffect(() => {
     if (!abierto) return;
@@ -55,6 +64,7 @@ const CalleModal = ({
     setGrandes(datosIniciales?.trafico_vehiculos_grandes ?? 0);
     setMedianos(datosIniciales?.trafico_vehiculos_medianos ?? 0);
     setPequenos(datosIniciales?.trafico_vehiculos_pequenos ?? 0);
+    setMotos(datosIniciales?.trafico_motocicletas ?? 0);
     setVelocidad(datosIniciales?.velocidadPromedio ?? 50);
     setTipoSuperficie(datosIniciales?.tipoSuperficie || "asfalto_no_ranurado");
     setPeriodoConteo(datosIniciales?.periodoConteo || "15_minutos");
@@ -75,6 +85,7 @@ const CalleModal = ({
       trafico_vehiculos_grandes: grandes,
       trafico_vehiculos_medianos: medianos,
       trafico_vehiculos_pequenos: pequenos,
+      ...(esCNOSSOS ? { trafico_motocicletas: motos } : {}),
       velocidadPromedio: velocidad,
       tipoSuperficie,
       periodoConteo,
@@ -158,6 +169,19 @@ const CalleModal = ({
               className="w-20 border border-dash-border bg-white/90 px-2 py-1 text-right text-[#4B5563] rounded-xl outline-none focus:border-[#70adf7]"
             />
           </label>
+
+          {esCNOSSOS && (
+            <label className="flex items-center justify-between text-sm">
+              <span>Motocicletas</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={motos}
+                onChange={(e) => cambiarNumero(e, setMotos)}
+                className="w-20 border border-dash-border bg-white/90 px-2 py-1 text-right text-[#4B5563] rounded-xl outline-none focus:border-[#70adf7]"
+              />
+            </label>
+          )}
         </div>
 
         <label className="mb-3 block text-sm">
@@ -171,6 +195,7 @@ const CalleModal = ({
           />
         </label>
 
+        {!esCNOSSOS && (
         <label className="mb-4 block text-sm">
           <span className="mb-1 block text-xs text-slate-300">Tipo de superficie</span>
           <select
@@ -186,6 +211,7 @@ const CalleModal = ({
             <option value="asfalto_poroso_15_8">Asfalto poroso 15/8</option>
           </select>
         </label>
+        )}
 
         <p className="mb-5 text-sm text-dash-text-soft" aria-live="polite">
           Nivel de ruido estimado:{" "}

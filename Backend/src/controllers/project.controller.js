@@ -14,7 +14,11 @@ export function getProjects(req, res) {
 }
 
 export function createProject(req, res) {
-  const { nombre, descripcion, region, comuna, estado } = req.body;
+  const { nombre, descripcion, region, comuna, estado, modeloCalculo = "RLS90" } = req.body;
+
+  if (!["RLS90", "CNOSSOS"].includes(modeloCalculo)) {
+    return res.status(400).json({ status: false, error: "El modelo de cálculo debe ser RLS90 o CNOSSOS." });
+  }
 
   const project = {
     nombre,
@@ -22,6 +26,7 @@ export function createProject(req, res) {
     region,
     comuna,
     estado: estado || "borrador",
+    modeloCalculo,
     usuario_id: req.user.id, // viene del JWT verificado, no del body
   };
 

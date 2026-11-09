@@ -1,5 +1,6 @@
 import { NIVEL_CORTE_DB } from "./nivelesRuido.js";
-import { calcularRuidoLocal } from "./ruidoLocal.js";
+import { calcularNivelEmision25, obtenerBandasEmision } from "./modeloRuido.js";
+import { construirTablaNivelDistancia, leerTablaNivelDistancia } from "./cnossos.js";
 
 /**
  * Propagación acústica RLS-90 calibrada para entorno urbano con suma energética.
@@ -75,22 +76,20 @@ export const sumarNivelesEnergeticamente = (niveles) => {
 };
 
 /** Nivel de emisión L_m(25) a partir de tráfico y velocidad. */
-export const obtenerNivelEmisionCalle = (calle) => {
-  const local = calcularRuidoLocal(
-    {
-      pequeños: calle.trafico_vehiculos_pequenos,
-      medianos: calle.trafico_vehiculos_medianos,
-      grandes: calle.trafico_vehiculos_grandes,
-    },
-    calle.velocidadPromedio ?? 50,
-    calle.tipoSuperficie || "asfalto_no_ranurado",
-    calle.periodoConteo || "15_minutos"
-  );
+export const obtenerNivelEmisionCalle = (calle, modelo) => {
+  const local = calcularNivelEmision25(calle, modelo);
   if (Number.isFinite(local) && local > 0) return local;
 
   const guardado = Number(calle.nivelRuidoCalculado);
   return Number.isFinite(guardado) && guardado > 0 ? guardado : null;
 };
+
+export const obtenerBandasCalle = (calle, modelo) => obtenerBandasEmision(calle, modelo);
+
+const nivelDeFuenteADistancia = (fuente, distanciaMetros) =>
+  fuente.tabla
+    ? leerTablaNivelDistancia(fuente.tabla, distanciaMetros)
+    : calcularNivelPorDistancia(fuente.nivel, distanciaMetros);
 
 /** Proyección equirectangular local. */
 export const crearProyeccionLocal = (lat0, lng0) => {
@@ -130,11 +129,19 @@ export const prepararFuentes = (calles, proyeccion) => {
   const fuentes = [];
 
   for (const calle of calles) {
-    const { latlngs, nivel } = calle;
+    const { latlngs, nivel, bandasA } = calle;
     if (!Array.isArray(latlngs) || latlngs.length < 2) continue;
     if (!Number.isFinite(nivel) || nivel <= 0) continue;
 
-    const alcance = calcularAlcanceMetros(nivel, NIVEL_CORTE_DB - MARGEN_CALCULO_DB);
+    let alcance;
+    let tabla = null;
+    if (bandasA) {
+      const resultado = construirTablaNivelDistancia(bandasA, NIVEL_CORTE_DB - MARGEN_CALCULO_DB);
+      alcance = resultado.alcance;
+      tabla = resultado.valores;
+    } else {
+      alcance = calcularAlcanceMetros(nivel, NIVEL_CORTE_DB - MARGEN_CALCULO_DB);
+    }
     if (alcance <= 0) continue;
 
     const segmentos = new Float64Array((latlngs.length - 1) * 4);
@@ -160,6 +167,7 @@ export const prepararFuentes = (calles, proyeccion) => {
 
     fuentes.push({
       nivel,
+      tabla,
       segmentos,
       alcance,
       alcanceCuadrado: alcance * alcance,
@@ -207,7 +215,7 @@ export const calcularNivelEnPunto = (px, py, fuentes) => {
     const distanciaCuadrada = distanciaMinimaCuadrada(px, py, fuente.segmentos);
     if (distanciaCuadrada > fuente.alcanceCuadrado) continue;
 
-    energia += nivelAEnergia(calcularNivelPorDistancia(fuente.nivel, Math.sqrt(distanciaCuadrada)));
+    energia += nivelAEnergia(nivelDeFuenteADistancia(fuente, Math.sqrt(distanciaCuadrada)));
   }
 
   return energiaANivel(energia);
@@ -233,7 +241,7 @@ export const calcularGrillaEnergia = (fuentes, xs, ys) => {
         const distanciaCuadrada = distanciaMinimaCuadrada(px, py, fuente.segmentos);
         if (distanciaCuadrada > fuente.alcanceCuadrado) continue;
 
-        const nivelK = calcularNivelPorDistancia(fuente.nivel, Math.sqrt(distanciaCuadrada));
+        const nivelK = nivelDeFuenteADistancia(fuente, Math.sqrt(distanciaCuadrada));
         energia[base + i] += nivelAEnergia(nivelK);
       }
     }

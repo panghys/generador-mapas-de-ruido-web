@@ -27,7 +27,8 @@ export function validarParametrosRuido(params) {
   const camposTrafico = [
     'pequeños', 'medianos', 'grandes',
     'vehiculos_livianos', 'vehiculos_pesados', 'motos',
-    'trafico_vehiculos_pequenos', 'trafico_vehiculos_medianos', 'trafico_vehiculos_grandes'
+    'trafico_vehiculos_pequenos', 'trafico_vehiculos_medianos', 'trafico_vehiculos_grandes',
+    'trafico_motocicletas'
   ];
 
   for (const campo of camposTrafico) {

@@ -5,13 +5,14 @@ import { Street } from "../models/Street.js";
 
 const publicado = { es_publico: true, estado: "listo" };
 const autor = { model: User, as: "propietario", attributes: ["id", "name"] };
-const atributosProyecto = ["id", "nombre", "descripcion", "comuna", "region", "zona", "estado", "es_publico", "fecha_modificacion"];
+const atributosProyecto = ["id", "nombre", "descripcion", "comuna", "region", "zona", "estado", "es_publico", "modeloCalculo","fecha_modificacion"];
 
 function serializarProyectoPublico(registro) {
   const objeto = registro.toJSON();
   const { propietario, ...proyecto } = objeto;
   return { ...proyecto, usuario: propietario };
 }
+
 
 function centroGeografico(zona) {
   try {
@@ -56,7 +57,7 @@ export async function obtenerProyectoPublico(id) {
     where: { ...publicado, id }, attributes: atributosProyecto,
     include: [
       autor,
-      { model: Street, as: "calles", attributes: ["id", "nombre_calle", "trazo_calle", "tipo_calle", "trafico_vehiculos_grandes", "trafico_vehiculos_medianos", "trafico_vehiculos_pequenos", "tipo_calculo", "nivel_ruido_dba", "color_asignado", "nivelRuidoCalculado", "velocidadPromedio", "tipoSuperficie", "periodoConteo"] },
+      { model: Street, as: "calles", attributes: ["id", "nombre_calle", "trazo_calle", "tipo_calle", "trafico_vehiculos_grandes", "trafico_vehiculos_medianos", "trafico_vehiculos_pequenos", "trafico_motocicletas", "tipo_calculo", "nivel_ruido_dba", "color_asignado", "nivelRuidoCalculado", "velocidadPromedio", "tipoSuperficie", "periodoConteo"] },
     ],
   });
   return registro ? serializarProyectoPublico(registro) : null;
