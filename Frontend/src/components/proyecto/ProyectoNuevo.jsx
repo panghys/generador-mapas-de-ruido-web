@@ -136,31 +136,6 @@ const ProyectoNuevo = () => {
               </div>
               <p className="mt-2 text-xs text-[#4B5563]">El modelo no se puede cambiar después de crear el proyecto.</p>
             </fieldset>
-              <div>
-                <label htmlFor="descripcion" className="mb-2 block text-sm font-bold text-[#153C5B]">Descripción</label>
-                <textarea
-                  id="descripcion"
-                  value={descripcion}
-                  onChange={(event) => setDescripcion(event.target.value)}
-                  placeholder="Breve descripción del área o propósito del proyecto"
-                  rows={5}
-                  className="w-full resize-y rounded-xl border border-[#D6E2EA] bg-[#FAFCFE] px-4 py-3 text-sm leading-6 text-[#243447] outline-none transition-all placeholder:text-[#99A9B5] focus:border-[#287EAB] focus:bg-white focus:ring-4 focus:ring-[#287EAB]/10"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="estado" className="mb-2 block text-sm font-bold text-[#153C5B]">Estado inicial</label>
-                <select
-                  id="estado"
-                  value={estado}
-                  onChange={(event) => setEstado(event.target.value)}
-                  className="w-full cursor-pointer rounded-xl border border-[#D6E2EA] bg-[#FAFCFE] px-4 py-3 text-sm font-medium text-[#243447] outline-none transition-all focus:border-[#287EAB] focus:ring-4 focus:ring-[#287EAB]/10"
-                >
-                  <option value="borrador">Borrador</option>
-                  <option value="listo">Listo</option>
-                </select>
-                <p className="mt-2 text-xs text-[#8294A4]">Puedes modificar el estado después desde Mis Proyectos.</p>
-              </div>
             </div>
 
             <div className="mt-9 flex flex-col-reverse gap-3 border-t border-[#E7EDF2] pt-6 sm:flex-row sm:justify-end">
