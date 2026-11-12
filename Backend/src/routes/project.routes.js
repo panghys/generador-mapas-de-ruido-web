@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { verifyToken } from "../middlewares/verifyToken.js";
+import { optionalVerifyToken } from "../middlewares/optionalVerifyToken.js";
 import {
   getProjects,
   createProject,
@@ -11,15 +12,23 @@ import {
   removeCollaborator,
 } from "../controllers/project.controller.js";
 import streetRoutes from "./street.routes.js";
-import { listarPublicos, detallePublico } from "../controllers/publicProject.controller.js";
+import {
+  listarPublicos,
+  detallePublico,
+  valorarPublico,
+} from "../controllers/publicProject.controller.js";
 
 const router = Router();
 
-// Consultas públicas: solo lectura, antes del middleware JWT.
-router.get("/publicos", listarPublicos);
-router.get("/publicos/:id", detallePublico);
+// Las consultas públicas no requieren sesión. Si hay un JWT válido,
+// también devuelven la valoración que ya realizó ese usuario.
+router.get("/publicos", optionalVerifyToken, listarPublicos);
+router.get("/publicos/:id", optionalVerifyToken, detallePublico);
 
-// Las operaciones privadas siguen exigiendo JWT.
+// Solo usuarios autenticados pueden crear o actualizar una valoración.
+router.post("/publicos/:id/valoracion", verifyToken, valorarPublico);
+
+// Las operaciones privadas existentes siguen exigiendo JWT.
 router.use(verifyToken);
 
 router.get("/", getProjects);

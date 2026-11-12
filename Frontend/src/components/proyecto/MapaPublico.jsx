@@ -9,6 +9,7 @@ import { calcularNivelEmision25 } from "./modeloRuido";
 import { obtenerNivelEmisionCalle, obtenerBandasCalle } from "./ruidoPropagacion";
 import { crearUrlVistaPrevia, descargarMapaRuido, generarMapaRuido } from "./exportarMapaRuido";
 import ExportarMapaModal from "./ExportarMapaModal";
+import PeekRating from "../ui/PeekRating";
 
 const comoObjeto = (geojson) => { try { return typeof geojson === "string" ? JSON.parse(geojson) : geojson; } catch { return null; } };
 const poligonoALatlng = (zona) => (comoObjeto(zona)?.coordinates?.[0] || []).map(([lng, lat]) => [lat, lng]);
@@ -31,6 +32,10 @@ export default function MapaPublico() {
   const [vista, setVista] = useState(null);
   const [descargando, setDescargando] = useState(false);
   const [errorDescarga, setErrorDescarga] = useState("");
+  const [guardandoValoracion, setGuardandoValoracion] = useState(false);
+  const [errorValoracion, setErrorValoracion] = useState("");
+  const [mensajeValoracion, setMensajeValoracion] = useState("");
+  const tieneSesion = Boolean(localStorage.getItem("token"));
   const mapaContenedor = useRef(null);
   const mapaRef = useRef(null);
   const urlRef = useRef(null);
@@ -83,6 +88,47 @@ export default function MapaPublico() {
   }, [proyecto, calles, mostrarRuido]);
 
   useEffect(() => () => { if (urlRef.current) URL.revokeObjectURL(urlRef.current); }, []);
+
+  async function guardarValoracion(puntuacion) {
+    if (!tieneSesion || guardandoValoracion || !proyecto) return;
+
+    const yaHabiaValorado = Number(proyecto.mi_valoracion) > 0;
+    setGuardandoValoracion(true);
+    setErrorValoracion("");
+    setMensajeValoracion("");
+
+    try {
+      const respuesta = await clientAxios.post(
+        `/proyectos/publicos/${id}/valoracion`,
+        { puntuacion }
+      );
+
+      if (!respuesta.data?.status || !respuesta.data?.data) {
+        throw new Error("No se pudo confirmar la valoración.");
+      }
+
+      setProyecto((actual) => ({ ...actual, ...respuesta.data.data }));
+      setMensajeValoracion(
+        yaHabiaValorado
+          ? "Tu valoración se actualizó correctamente."
+          : "¡Gracias! Tu valoración se guardó correctamente."
+      );
+    } catch (err) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setErrorValoracion(
+          "Tu sesión no es válida o expiró. Inicia sesión nuevamente para valorar."
+        );
+      } else {
+        setErrorValoracion(
+          err.response?.data?.error ||
+            err.message ||
+            "No se pudo guardar tu valoración. Inténtalo nuevamente."
+        );
+      }
+    } finally {
+      setGuardandoValoracion(false);
+    }
+  }
 
   async function exportar() {
     if (!proyecto?.zona) return;
@@ -137,6 +183,93 @@ export default function MapaPublico() {
             <div ref={mapaContenedor} className="h-[530px] w-full bg-[#EDF3F7] sm:h-[650px]" aria-label="Mapa acústico público, solo lectura" />
           </section>
           <aside className="h-fit space-y-5 rounded-2xl border border-[#DCE5EC] bg-white p-5 shadow-[0_4px_18px_rgba(19,54,83,0.04)]">
+            <section className="rounded-xl border border-[#DCE5EC] bg-[#F9FBFD] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#287EAB]">
+                    Valoración de la comunidad
+                  </p>
+                  <p className="mt-1 text-sm text-[#718397]">
+                    {Number(proyecto.cantidad_valoraciones || 0)} {Number(proyecto.cantidad_valoraciones || 0) === 1 ? "valoración" : "valoraciones"}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="text-3xl font-bold leading-none text-[#153C5B]">
+                    {Number(proyecto.cantidad_valoraciones || 0) > 0
+                      ? Number(proyecto.valoracion_promedio || 0).toFixed(1)
+                      : "—"}
+                  </span>
+                  <span className="ml-1 text-xs font-medium text-[#8294A4]">/ 5</span>
+                </div>
+              </div>
+
+              <div className="mt-3">
+                <PeekRating
+                  value={Number(proyecto.valoracion_promedio || 0)}
+                  readOnly
+                  showTip={false}
+                  size={20}
+                  ariaLabel="Promedio de valoración de la comunidad"
+                />
+              </div>
+
+              <div className="mt-4 border-t border-[#E7EDF2] pt-4">
+                {tieneSesion ? (
+                  <>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-[#153C5B]">Tu valoración</p>
+                      {Number(proyecto.mi_valoracion) > 0 && (
+                        <span className="text-[11px] font-semibold text-[#3A8067]">Puedes actualizarla</span>
+                      )}
+                    </div>
+                    <div className="mt-2">
+                      <PeekRating
+                        value={Number(proyecto.mi_valoracion || 0)}
+                        onChange={guardarValoracion}
+                        disabled={guardandoValoracion}
+                        size={29}
+                        labels={["Muy malo", "Malo", "Regular", "Bueno", "Excelente"]}
+                        ariaLabel="Selecciona tu valoración para este mapa"
+                      />
+                    </div>
+                    <p className="mt-2 text-xs leading-5 text-[#8294A4]">
+                      {guardandoValoracion
+                        ? "Guardando tu valoración..."
+                        : Number(proyecto.mi_valoracion) > 0
+                          ? `Ya valoraste este mapa con ${proyecto.mi_valoracion} de 5 estrellas. Puedes cambiar tu puntuación.`
+                          : "Selecciona de 1 a 5 estrellas para valorar este mapa."}
+                    </p>
+                  </>
+                ) : (
+                  <div>
+                    <p className="text-sm font-semibold text-[#153C5B]">
+                      ¿Qué te pareció este mapa?
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-[#8294A4]">
+                      Inicia sesión para dejar tu valoración y ayudar a la comunidad.
+                    </p>
+                    <Link
+                      to="/login"
+                      className="mt-3 inline-flex items-center justify-center rounded-lg bg-[#155B91] px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-[#0F456E] focus:outline-none focus:ring-2 focus:ring-[#287EAB] focus:ring-offset-2"
+                    >
+                      Iniciar sesión para valorar
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {mensajeValoracion && (
+                <p role="status" className="mt-3 rounded-lg border border-[#CFE8DC] bg-[#F0F8F4] px-3 py-2 text-xs font-medium text-[#287653]">
+                  {mensajeValoracion}
+                </p>
+              )}
+              {errorValoracion && (
+                <p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">
+                  {errorValoracion}
+                </p>
+              )}
+            </section>
+
             <div><h2 className="text-base font-semibold text-[#153C5B]">Datos del estudio</h2><p className="mt-2 text-sm text-[#718397]">{calles.length} calles registradas</p><p className="mt-1 text-sm text-[#718397]">Sin permisos de edición</p></div>
             <button type="button" onClick={() => setMostrarRuido((v) => !v)} className="w-full rounded-lg border border-[#CFE2EE] bg-[#EAF4FA] p-3 text-sm font-semibold text-[#155B91] transition-colors hover:bg-[#DDECF5]">{mostrarRuido ? "Ocultar" : "Mostrar"} superficie acústica</button>
             <div><h3 className="mb-3 text-sm font-semibold text-[#153C5B]">Escala de niveles acústicos</h3>{NIVELES_RUIDO.map((nivel) => <div key={nivel.color} className="mb-2 flex items-center gap-2 text-xs text-[#52697C]"><span className="h-3 w-7 rounded" style={{ background: nivel.color }} />{nivel.rango} dB(A)</div>)}</div>

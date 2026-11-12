@@ -6,24 +6,11 @@ import clientAxios from "../config/clienteAxios";
 import CircularCarousel from "../CircularCarousel";
 
 import MapaRuidoPreview from "./MapaRuidoPreview";
+import PeekRating from "../ui/PeekRating";
 
 // =====================================================
 // FUNCIONES AUXILIARES
 // =====================================================
-import { calcularNivelEmision25 } from "./modeloRuido";
-import { obtenerNivelEmisionCalle, obtenerBandasCalle } from "./ruidoPropagacion";
-import {
-  generarMapaRuido,
-  crearUrlVistaPrevia,
-} from "./exportarMapaRuido";
-
-const leer = (valor) => {
-  try {
-    return typeof valor === "string" ? JSON.parse(valor) : valor;
-  } catch {
-    return null;
-  }
-};
 
 const fecha = (valor) => {
   if (!valor) return "Sin fecha";
@@ -35,51 +22,7 @@ const fecha = (valor) => {
     : objeto.toLocaleDateString("es-CL");
 };
 
-
-// Genera una imagen del mapa acústico real.
-async function crearMiniatura(proyecto) {
-  const zona = (
-    leer(proyecto.zona)?.coordinates?.[0] || []
-  ).map(([lng, lat]) => [lat, lng]);
-
-  const calles = (proyecto.calles || []).map((calle) => {
-    const nivel = calcularNivelEmision25(calle, proyecto.modeloCalculo);
-
-    return {
-      ...calle,
-      nivelRuidoCalculado: nivel,
-      latlngs: (
-        leer(calle.trazo_calle)?.coordinates || []
-      ).map(([lng, lat]) => [lat, lng]),
-    };
-  });
-
-  const fuentes = calles
-    .map((calle) => ({
-      latlngs: calle.latlngs,
-      nivel: obtenerNivelEmisionCalle(calle, proyecto.modeloCalculo),
-      bandasA: obtenerBandasCalle(calle, proyecto.modeloCalculo),
-    }))
-    .filter(
-      (calle) =>
-        calle.latlngs.length >= 2 &&
-        Number.isFinite(calle.nivel)
-    );
-
-  if (zona.length < 3 || !fuentes.length) {
-    return null;
-  }
-
-  const resultado = await generarMapaRuido({
-    nombre: proyecto.nombre,
-    calles: fuentes,
-    zona,
-  });
-
-  return crearUrlVistaPrevia(resultado);
-}
-
-// Permite buscar proyectos por ubicación geográfica.
+// Convertir un lugar escrito en coordenadas.
 async function geocodificar(texto, signal) {
   const url = new URL(
     "https://nominatim.openstreetmap.org/search"
@@ -364,14 +307,58 @@ export default function ProyectosPublicos() {
   // =====================================================
 
   const destacados = useMemo(() => {
-    return todos.slice(0, 8).map((mapa) => ({
-      id: mapa.id,
-      title: mapa.nombre,
-      subtitle:
-        [mapa.comuna, mapa.region]
-          .filter(Boolean)
-          .join(", ") || "Estudio acústico",
-    }));
+    // Para entrar al grupo de mejor valorados se requieren al menos 3 votos.
+    // Si faltan espacios, la galería se completa con los proyectos más recientes.
+    const mejorValorados = [...todos]
+      .filter((mapa) => Number(mapa.cantidad_valoraciones || 0) >= 3)
+      .sort((a, b) => {
+        const diferenciaPromedio =
+          Number(b.valoracion_promedio || 0) -
+          Number(a.valoracion_promedio || 0);
+        if (diferenciaPromedio !== 0) return diferenciaPromedio;
+
+        const diferenciaCantidad =
+          Number(b.cantidad_valoraciones || 0) -
+          Number(a.cantidad_valoraciones || 0);
+        if (diferenciaCantidad !== 0) return diferenciaCantidad;
+
+        return (
+          new Date(b.fecha_modificacion || 0).getTime() -
+          new Date(a.fecha_modificacion || 0).getTime()
+        );
+      });
+
+    const seleccionados = mejorValorados.slice(0, 8);
+    const incluidos = new Set(seleccionados.map((mapa) => mapa.id));
+    const recientes = [...todos].sort(
+      (a, b) =>
+        new Date(b.fecha_modificacion || 0).getTime() -
+        new Date(a.fecha_modificacion || 0).getTime()
+    );
+
+    for (const mapa of recientes) {
+      if (seleccionados.length >= 8) break;
+      if (incluidos.has(mapa.id)) continue;
+      seleccionados.push(mapa);
+      incluidos.add(mapa.id);
+    }
+
+    return seleccionados.map((mapa) => {
+      const cantidad = Number(mapa.cantidad_valoraciones || 0);
+      const promedio = Number(mapa.valoracion_promedio || 0);
+      const lugar =
+        [mapa.comuna, mapa.region].filter(Boolean).join(", ") ||
+        "Estudio acústico";
+      const valoracion = cantidad
+        ? `★ ${promedio.toFixed(1)} · ${cantidad} ${cantidad === 1 ? "valoración" : "valoraciones"}`
+        : "Sin valoraciones";
+
+      return {
+        id: mapa.id,
+        title: mapa.nombre,
+        subtitle: `${lugar} · ${valoracion}`,
+      };
+    });
   }, [todos]);
 
   const abrirProyecto = (id) => {
@@ -441,7 +428,7 @@ export default function ProyectosPublicos() {
               </h2>
 
               <p className="mt-2 text-sm text-[#718397]">
-                Explora los estudios acústicos de nuestra comunidad.
+                Los mapas mejor valorados aparecen primero; los proyectos recientes completan la galería.
               </p>
             </div>
 
@@ -710,6 +697,28 @@ export default function ProyectosPublicos() {
                   {mapa.descripcion ||
                     "Estudio acústico compartido con la comunidad para consulta pública."}
                 </p>
+
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#EDF1F5] bg-[#FAFCFE] px-3 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <PeekRating
+                      value={Number(mapa.valoracion_promedio || 0)}
+                      readOnly
+                      showTip={false}
+                      size={17}
+                      ariaLabel={`Valoración promedio de ${mapa.nombre}`}
+                    />
+                    <span className="text-sm font-bold text-[#153C5B]">
+                      {Number(mapa.cantidad_valoraciones || 0) > 0
+                        ? Number(mapa.valoracion_promedio || 0).toFixed(1)
+                        : "—"}
+                    </span>
+                  </div>
+                  <span className="text-xs font-medium text-[#8294A4]">
+                    {Number(mapa.cantidad_valoraciones || 0) > 0
+                      ? `${mapa.cantidad_valoraciones} ${Number(mapa.cantidad_valoraciones) === 1 ? "valoración" : "valoraciones"}`
+                      : "Sin valoraciones"}
+                  </span>
+                </div>
 
                 <div className="mt-5 border-t border-[#EDF1F5] pt-4">
 

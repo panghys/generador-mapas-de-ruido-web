@@ -1,7 +1,8 @@
-import { Op } from "sequelize";
+import { Op, col, fn } from "sequelize";
 import { Project } from "../models/Project.js";
 import { User } from "../models/User.js";
 import { Street } from "../models/Street.js";
+import { ProjectRating } from "../models/ProjectRating.js";
 
 const publicado = { es_publico: true, estado: "listo" };
 const autor = { model: User, as: "propietario", attributes: ["id", "name"] };
@@ -11,6 +12,65 @@ function serializarProyectoPublico(registro) {
   const objeto = registro.toJSON();
   const { propietario, ...proyecto } = objeto;
   return { ...proyecto, usuario: propietario };
+}
+
+async function agregarResumenValoraciones(proyectos, usuarioId = null) {
+  if (!proyectos.length) return proyectos;
+
+  const ids = proyectos.map((proyecto) => Number(proyecto.id));
+  const resumenes = await ProjectRating.findAll({
+    attributes: [
+      "proyecto_id",
+      [fn("AVG", col("puntuacion")), "promedio"],
+      [fn("COUNT", col("id")), "cantidad"],
+    ],
+    where: { proyecto_id: { [Op.in]: ids } },
+    group: ["proyecto_id"],
+    raw: true,
+  });
+
+  const resumenPorId = new Map(
+    resumenes.map((fila) => [Number(fila.proyecto_id), fila])
+  );
+
+  const tieneUsuario =
+    usuarioId !== null &&
+    usuarioId !== undefined &&
+    Number.isInteger(Number(usuarioId)) &&
+    Number(usuarioId) > 0;
+
+  const valoracionesPropias = tieneUsuario
+    ? await ProjectRating.findAll({
+        attributes: ["proyecto_id", "puntuacion"],
+        where: {
+          proyecto_id: { [Op.in]: ids },
+          usuario_id: Number(usuarioId),
+        },
+        raw: true,
+      })
+    : [];
+
+  const propiaPorId = new Map(
+    valoracionesPropias.map((fila) => [
+      Number(fila.proyecto_id),
+      Number(fila.puntuacion),
+    ])
+  );
+
+  return proyectos.map((proyecto) => {
+    const id = Number(proyecto.id);
+    const resumen = resumenPorId.get(id);
+    const promedio = resumen ? Number(resumen.promedio) : 0;
+
+    return {
+      ...proyecto,
+      valoracion_promedio: Number.isFinite(promedio)
+        ? Math.round(promedio * 10) / 10
+        : 0,
+      cantidad_valoraciones: resumen ? Number(resumen.cantidad) : 0,
+      mi_valoracion: propiaPorId.has(id) ? propiaPorId.get(id) : null,
+    };
+  });
 }
 
 
@@ -37,7 +97,7 @@ function distanciaKm(a, b) {
   return 12742 * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-export async function listarProyectosPublicos({ q = "", lat = null, lng = null, radio = 30 } = {}) {
+export async function listarProyectosPublicos({ q = "", lat = null, lng = null, radio = 30, usuarioId = null } = {}) {
   const where = { ...publicado };
   if (q.trim()) {
     const termino = `%${q.trim().replace(/[%_\\]/g, "\\$&")}%`;
@@ -45,14 +105,16 @@ export async function listarProyectosPublicos({ q = "", lat = null, lng = null, 
   }
   const registros = await Project.findAll({ where, attributes: atributosProyecto, include: [autor], order: [["fecha_modificacion", "DESC"], ["id", "DESC"]] });
   const origen = lat === null || lng === null ? null : { lat, lng };
-  return registros.map((registro) => {
+  const proyectos = registros.map((registro) => {
     const objeto = serializarProyectoPublico(registro);
     const centro = centroGeografico(objeto.zona);
     return { ...objeto, distancia_km: origen && centro ? Math.round(distanciaKm(origen, centro) * 10) / 10 : null };
   }).filter((p) => !origen || (p.distancia_km !== null && p.distancia_km <= radio));
+
+  return agregarResumenValoraciones(proyectos, usuarioId);
 }
 
-export async function obtenerProyectoPublico(id) {
+export async function obtenerProyectoPublico(id, usuarioId = null) {
   const registro = await Project.findOne({
     where: { ...publicado, id }, attributes: atributosProyecto,
     include: [
@@ -60,5 +122,34 @@ export async function obtenerProyectoPublico(id) {
       { model: Street, as: "calles", attributes: ["id", "nombre_calle", "trazo_calle", "tipo_calle", "trafico_vehiculos_grandes", "trafico_vehiculos_medianos", "trafico_vehiculos_pequenos", "trafico_motocicletas", "tipo_calculo", "nivel_ruido_dba", "color_asignado", "nivelRuidoCalculado", "velocidadPromedio", "tipoSuperficie", "periodoConteo"] },
     ],
   });
-  return registro ? serializarProyectoPublico(registro) : null;
+  if (!registro) return null;
+
+  const [proyecto] = await agregarResumenValoraciones(
+    [serializarProyectoPublico(registro)],
+    usuarioId
+  );
+
+  return proyecto;
+}
+
+export async function registrarValoracionProyectoPublico({ proyectoId, usuarioId, puntuacion }) {
+  const proyecto = await Project.findOne({
+    where: { ...publicado, id: proyectoId },
+    attributes: ["id"],
+  });
+
+  if (!proyecto) return null;
+
+  await ProjectRating.upsert({
+    proyecto_id: Number(proyectoId),
+    usuario_id: Number(usuarioId),
+    puntuacion: Number(puntuacion),
+  });
+
+  const [resumen] = await agregarResumenValoraciones(
+    [{ id: Number(proyectoId) }],
+    usuarioId
+  );
+
+  return resumen;
 }
